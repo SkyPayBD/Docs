@@ -167,9 +167,9 @@ Content-Type: application/json
         "agent": false,
         "payment": true
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXX",
       "agent": "",
-      "payment": "01761844968"
+      "payment": "01XXXXXXXX"
     },
     {
       "name": "nagad",
@@ -177,7 +177,7 @@ Content-Type: application/json
         "personal": true,
         "agent": false
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXX",
       "agent": ""
     },
     {
@@ -186,7 +186,7 @@ Content-Type: application/json
         "personal": true,
         "agent": false
       },
-      "personal": "017257649946",
+      "personal": "01XXXXXXXX",
       "agent": ""
     },
     {
@@ -195,7 +195,7 @@ Content-Type: application/json
         "personal": true,
         "agent": false
       },
-      "personal": "017284684646",
+      "personal": "01XXXXXXXXX",
       "agent": ""
     }
   ]
@@ -235,9 +235,9 @@ Display a formatted message with the active wallet numbers and instruct the user
 
 Send the exact amount to any of these numbers:
 
-📱 bKash (Send Money): 01761844968
-📱 Nagad (Send Money): 01761844968
-📱 Rocket (Send Money): 017257649946
+📱 bKash (Send Money): 01XXXXXXXX
+📱 Nagad (Send Money): 01XXXXXXXX
+📱 Rocket (Send Money): 01XXXXXXXX
 
 ⚠️ Instructions:
 1. Open your MFS app (bKash / Nagad / Rocket)
