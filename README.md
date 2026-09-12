@@ -401,12 +401,12 @@ The Headless API v2 gives you 100% control over the user experience. The custome
   [2. Your Bot calls: POST https://core.skypaybd.top/api/v2/payment/create]
                       │
   [3. SkyPay returns Active Merchant Numbers]
-      - bKash: 01761844968 (Personal & Payment Active)
-      - Nagad: 01761844968 (Personal Active)
-      - Rocket: 017257649946 (Personal Active)
+      - bKash: 01XXXXXXXX (Personal & Payment Active)
+      - Nagad: 01XXXXXXXX (Personal Active)
+      - Rocket: 01XXXXXXXX (Personal Active)
                       │
   [4. Bot renders message directly in chat:]
-      "Please Send Money 500 BDT to bKash: 01761844968
+      "Please Send Money 500 BDT to bKash: 01XXXXXXXX
        After paying, enter your SMS TrxID here:"
                       │
   [5. Customer sends money in bKash app & replies with TrxID: 'BLA38KDK2M']
@@ -511,9 +511,9 @@ else:
         "agent": false,
         "payment": true
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXX",
       "agent": "",
-      "payment": "01761844968"
+      "payment": "01XXXXXXXX"
     },
     {
       "name": "nagad",
@@ -521,7 +521,7 @@ else:
         "personal": true,
         "agent": false
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXX",
       "agent": ""
     },
     {
@@ -530,7 +530,7 @@ else:
         "personal": true,
         "agent": false
       },
-      "personal": "017257649946",
+      "personal": "01XXXXXXXX",
       "agent": ""
     },
     {
@@ -539,7 +539,7 @@ else:
         "personal": true,
         "agent": false
       },
-      "personal": "017284684646",
+      "personal": "01XXXXXXXXX",
       "agent": ""
     }
   ]
@@ -570,9 +570,9 @@ Once your backend receives the active wallet numbers from `/create`, you present
 💳 Order #VIP_SUB_01 — Payable: 500 BDT
 
 Please send the exact amount to any of our official numbers:
-📱 bKash (Personal): 01761844968 [Send Money]
-📱 Nagad (Personal): 01761844968 [Send Money]
-📱 Rocket (Personal): 017257649946 [Send Money]
+📱 bKash (Personal): 01XXXXXXXX [Send Money]
+📱 Nagad (Personal): 01XXXXXXXX [Send Money]
+📱 Rocket (Personal): 01XXXXXXXX [Send Money]
 
 ⚠️ Important:
 1. Pay the exact amount (500 BDT).
