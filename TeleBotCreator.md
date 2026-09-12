@@ -23,7 +23,7 @@
   Payment GW    : https://skypaybd.top/
   Digital Store : https://chapri.shop/
   GitHub        : https://github.com/SkyPayBD
-  YouTube       : https://youtube.com/@SkyPayBD
+  YouTube       : https://youtube.com/@Sky-Pay-BD
   Facebook      : https://facebook.com/siyamahmedjsx
 
   This document was created to help users build Telegram bots
@@ -1991,7 +1991,7 @@ except:
 | **Payment Gateway** | [skypaybd.top](https://skypaybd.top/) |
 | **Digital Products** | [chapri.shop](https://chapri.shop/) |
 | **GitHub** | [github.com/SkyPayBD](https://github.com/SkyPayBD) |
-| **YouTube** | [youtube.com/@SkyPayBD](https://youtube.com/@SkyPayBD) |
+| **YouTube** | [youtube.com/@Sky-Pay-BD](https://youtube.com/@Sky-Pay-BD) |
 | **Facebook** | [facebook.com/siyamahmedjsx](https://facebook.com/siyamahmedjsx) |
 
 ---
