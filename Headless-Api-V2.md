@@ -91,14 +91,17 @@ SkyPay returns: session ID + active merchant wallet numbers
           ▼
 [Step 2] Your platform shows wallet numbers to the user
          inside your own interface (app screen, chat message, webpage modal)
+         ⚠️ Show ONLY the channels returned in `methods[]` where active_payments flag = true
           │
           ▼
-User sends money via bKash/Nagad/Rocket/Upay app
+User selects a payment method (bKash / Nagad / Rocket / Upay)
+User sends money via their MFS app
 User receives an SMS with a Transaction ID (TrxID)
-User submits that TrxID back into your interface
+User selects which method they used + submits TrxID back into your interface
           │
           ▼
 [Step 3] Your backend calls POST /api/v2/payment/verify
+         ⚠️ MUST include: session id + method (lowercase) + transaction_id
           │
           ▼
 SkyPay matches the TrxID against incoming SMS on the Android device (5–20 seconds)
@@ -107,6 +110,55 @@ SkyPay matches the TrxID against incoming SMS on the Android device (5–20 seco
 [Step 4] Verification success → your platform fulfills the order
          (add balance, activate subscription, unlock content, etc.)
 ```
+
+---
+
+## Real-World Integration Example: Telegram Bot Flow
+
+Below is a concrete, step-by-step walkthrough of how this API works inside a **Telegram Bot**. The same logic applies to websites, Discord bots, and any other platform.
+
+```
+1. User opens the bot and clicks the "💰 Deposit" button.
+
+2. Bot asks: "How much do you want to deposit? (in BDT)"
+   User replies: 500
+
+3. Bot reads user's Telegram name (e.g. "Siyam Ahmed") automatically.
+
+4. Bot's backend sends a POST request to /api/v2/payment/create:
+   - Header: BRAND-KEY, Content-Type
+   - Body: { "cus_name": "Siyam Ahmed", "amount": 500, "meta_data": { "telegram_id": 123456789 } }
+
+5. SkyPay returns a session ID and active wallet numbers for bKash, Nagad, etc.
+
+6. Bot sends a formatted message to the user:
+   ────────────────────────
+   💳 Payment Request — 500 BDT
+
+   Send exactly 500 BDT to any of these numbers:
+
+   📱 bKash (Send Money): 01XXXXXXXX
+   📱 Nagad (Send Money): 01XXXXXXXX
+   📱 Rocket (Send Money): 01XXXXXXXX
+
+   ⚠️ After payment, you'll receive an SMS with a TrxID.
+   Reply here with:
+   1️⃣ Which method you used (bKash / Nagad / Rocket)
+   2️⃣ Your Transaction ID (e.g. BLA38KDK2M)
+   ────────────────────────
+
+7. User pays 500 BDT via bKash, gets TrxID: BLA38KDK2M
+   User replies: "bKash - BLA38KDK2M"
+
+8. Bot's backend sends POST to /api/v2/payment/verify:
+   - Body: { "id": "<session_id>", "method": "bkash", "transaction_id": "BLA38KDK2M" }
+
+9. SkyPay confirms: { "status": true, "amount": "500.00" }
+
+10. Bot credits 500 BDT to the user's account and sends confirmation.
+```
+
+> **⚠️ Critical for Telegram Integration:** Always save the session `id` from step 4 in your bot's conversation context (e.g., Redis, database, or in-memory store keyed by `telegram_user_id`). You MUST send this `id` in the verify call. Without it, verification is impossible.
 
 ---
 
@@ -220,6 +272,8 @@ Content-Type: application/json
 
 > **Critical:** Only show numbers where the corresponding `active_payments` flag is `true`. If a number is `""` or its flag is `false`, do not display that option to the user.
 
+> **Important:** The `methods[]` array returned from `/create` represents ONLY the wallets your merchant has configured and enabled in your Brand setup on the SkyPay Dashboard. If bKash is not in the response, it means it is not set up on your merchant account — you cannot verify a bKash payment for a brand that has no bKash wallet connected. Always display and accept only the methods returned in this response.
+
 ---
 
 ## Step 2 — Presenting Payment Options to the User
@@ -228,7 +282,7 @@ After receiving the response from `/create`, your platform must display the acti
 
 ### For Chat Interfaces (Telegram Bot, Discord Bot, etc.)
 
-Display a formatted message with the active wallet numbers and instruct the user to reply with their TrxID:
+Display a formatted message with the active wallet numbers and instruct the user to reply with both their **chosen method** and their **TrxID**:
 
 ```
 💳 Payment Request — 500 BDT
@@ -243,21 +297,26 @@ Send the exact amount to any of these numbers:
 1. Open your MFS app (bKash / Nagad / Rocket)
 2. Send exactly 500 BDT to one of the numbers above
 3. After payment, you will receive an SMS with a Transaction ID (TrxID)
-4. Reply to this message with your TrxID
+4. Reply to this message with the method you used AND your TrxID
 
-Example TrxID format: BLA38KDK2M
+Example reply: bkash BLA38KDK2M
 ```
 
-Add buttons or prompts for the user to submit their TrxID when ready.
+Add buttons or prompts for the user to:
+- **Select which method they used** (bKash / Nagad / Rocket / Upay)
+- **Submit their TrxID**
+
+Both pieces of information are **mandatory** for verification.
 
 ### For Web Applications & Dashboards
 
 Render a payment modal or dedicated section showing:
 - The amount due (bold, prominent)
-- Channel tabs or cards (bKash / Nagad / Rocket / Upay) — only show active ones
+- Channel tabs or cards (bKash / Nagad / Rocket / Upay) — **only show active ones from the API response**
 - The wallet number for each active channel (with a copy button)
+- A **dropdown or tab selector** for the user to choose which method they paid with
 - A text input field labeled "Enter your Transaction ID (TrxID)"
-- A submit/verify button
+- A submit/verify button that sends both the method and TrxID to your backend
 
 ### For Mobile Applications
 
@@ -266,13 +325,14 @@ Display a native bottom sheet or payment screen with:
 - Payment method selector (show only channels where `active_payments` flag is true)
 - Selected channel's wallet number with a one-tap copy functionality
 - Deep link or redirect to open the respective MFS app if possible
-- A TrxID input field that appears after the user confirms they have paid
+- After the user confirms they have paid: a method confirmation step + a TrxID input field
 
 ### General Rules for All Platforms
 
-- Display **only the channels and numbers that are currently active**
+- Display **only the channels and numbers that are currently active** (from the API response)
 - Show the **exact amount** the user must send — partial payments will fail verification
 - Make the wallet number **easily copyable** to avoid typos
+- **Always ask the user to confirm which method they used** before submitting the TrxID
 - Inform the user that payment SMS may take **5 to 20 seconds** to be detected
 - Store the session `id` from Step 1 in your session, database, or bot context — you need it for Step 3
 
@@ -280,7 +340,21 @@ Display a native bottom sheet or payment screen with:
 
 ## Step 3 — Verify the Transaction
 
-When the user submits their TrxID, your backend immediately sends it to SkyPay for verification.
+> ### ⚠️ THIS IS THE MOST CRITICAL STEP — READ CAREFULLY
+
+When the user submits their TrxID, your backend **must** send **all three of the following** to SkyPay for verification:
+
+1. **`id`** — The session ID you received from `/create` in Step 1
+2. **`method`** — The exact payment channel the user used, in **strict lowercase** (e.g. `bkash`, not `Bkash`, not `BKASH`)
+3. **`transaction_id`** — The TrxID from the user's payment SMS
+
+**If any one of these three fields is missing, wrong, or not in the correct format — the verification WILL fail. There are no exceptions.**
+
+Specifically:
+- If `method` is not lowercase → `400 Unsupported payment method supplied`
+- If `method` is a channel not configured in your brand → `400` error
+- If `id` is wrong or expired → `404 Payment session not found or expired`
+- If `transaction_id` doesn't match any incoming SMS → `400 Invalid transaction ID`
 
 ### Endpoint
 
@@ -300,10 +374,15 @@ Content-Type: application/json
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `id` | String | ✅ Yes | The session ID received from `/create` in Step 1 |
-| `method` | String | ✅ Yes | The payment channel the user used — must be **strict lowercase** |
+| `method` | String | ✅ Yes | The payment channel the user used — **must be strict lowercase** |
 | `transaction_id` | String | ✅ Yes | The TrxID from the user's payment SMS |
 
-**Valid values for `method`:** `bkash` · `nagad` · `rocket` · `upay`
+> **🚨 `method` Field Rules — Non-Negotiable:**
+> - Must be **exactly one** of: `bkash` · `nagad` · `rocket` · `upay`
+> - Must be **all lowercase** — no uppercase, no mixed case, no spaces
+> - Must **match the channel the user actually paid through**
+> - Must be a channel that **exists in the `methods[]` array** returned from your `/create` call
+> - **Wrong method = failed verification, even if the TrxID is 100% valid**
 
 ### Example Request Body
 
@@ -326,6 +405,15 @@ Content-Type: application/json
 }
 ```
 
+### Success Response Fields Explained
+
+| Field | Type | Description |
+|---|---|---|
+| `status` | Boolean | `true` = payment verified successfully |
+| `amount` | String | The verified payment amount in BDT (matches the session amount) |
+| `cus_name` | String | The customer name provided during `/create` |
+| `id` | String | The session ID that was verified |
+
 When `status` is `true`, the payment is fully verified. Proceed to fulfill the order immediately.
 
 ### Error Responses
@@ -334,7 +422,7 @@ When `status` is `true`, the payment is fully verified. Proceed to fulfill the o
 |---|---|---|---|
 | `400` | `Invalid transaction ID or transaction already used.` | TrxID not found in SMS logs, or already claimed by another session | Ask user to double-check TrxID, or wait 10 seconds and retry |
 | `400` | `This payment session has already been completed.` | Session was already verified — prevents double fulfillment | Do not fulfill again |
-| `400` | `Unsupported payment method supplied.` | Method string is not lowercase or not one of the four valid values | Fix the method string |
+| `400` | `Unsupported payment method supplied.` | `method` string is not lowercase, not one of the four valid values, or not configured in your brand | Fix the method string — must be `bkash`, `nagad`, `rocket`, or `upay` in strict lowercase |
 | `401` | `Invalid or inactive BRAND-KEY provided.` | Wrong or deactivated BRAND-KEY | Check your Dashboard |
 | `403` | (Device not connected) | Merchant Android phone is offline or APK is not running | Restart the SkyPay APK on your phone |
 | `404` | `Payment session not found or expired.` | Session ID is wrong or the session has expired | Call `/create` again to generate a new session |
@@ -369,10 +457,11 @@ When a customer pays via bKash, Nagad, Rocket, or Upay, the telecom network send
 **Recommended retry flow:**
 
 ```
-User submits TrxID
+User submits TrxID + selected method
         │
         ▼
 Call /verify endpoint
+(with id + method + transaction_id)
         │
     ┌───┴───┐
   success  error (SMS not yet arrived)
@@ -401,7 +490,9 @@ order        "Payment matching in progress.
 | **Idempotency** | Once a TrxID is verified, SkyPay marks it as claimed. The same TrxID cannot be used again under any session. Implement your own database check to prevent fulfilling the same order twice |
 | **Exact amount match** | SkyPay verifies that the SMS amount matches the session amount. Partial payments will fail |
 | **Lowercase method names** | Always send `bkash`, `nagad`, `rocket`, or `upay` — never capitalized or mixed case |
+| **Only use methods from your brand** | Only the payment channels configured in your SkyPay Brand dashboard can be used for verification. Using a method that isn't in your brand's setup will result in an error |
 | **Do not trust user input alone** | Always verify via API before granting any benefit |
+| **Save session ID immediately** | The `id` from `/create` must be stored on your backend before presenting wallet numbers. If lost, the session cannot be verified and a new one must be created |
 
 ---
 
@@ -410,7 +501,7 @@ order        "Payment matching in progress.
 | HTTP Code | Meaning | What To Do |
 |---|---|---|
 | `200 OK` | Request processed successfully | Check `"status": true` in the response body |
-| `400 Bad Request` | Missing parameter, invalid TrxID, or already-used session | Read the `"message"` field for exact detail |
+| `400 Bad Request` | Missing parameter, invalid TrxID, wrong/missing method, or already-used session | Read the `"message"` field for exact detail |
 | `401 Unauthorized` | Missing or invalid BRAND-KEY | Verify your key in the Dashboard |
 | `403 Forbidden` | No active Android device connected | Check that your SkyPay APK phone is online |
 | `404 Not Found` | Session expired or does not exist | Call `/create` again for a new session |
@@ -430,13 +521,18 @@ ENDPOINT 1 — Create Session
   POST /api/v2/payment/create
   Body: { "cus_name": "...", "amount": 500, "meta_data": {} }
   Returns: { "status": true, "id": "...", "methods": [...] }
+  → Save the "id" immediately. It is required for verification.
+  → Only display methods where active_payments flag is true.
 
 ENDPOINT 2 — Verify Payment
   POST /api/v2/payment/verify
   Body: { "id": "...", "method": "bkash", "transaction_id": "..." }
   Returns: { "status": true, "amount": "500.00", "cus_name": "..." }
+  → "id"             : session ID from /create (required)
+  → "method"         : lowercase channel name (required, must match what user paid with)
+  → "transaction_id" : TrxID from user's payment SMS (required)
 
-VALID METHODS  : bkash | nagad | rocket | upay  (always lowercase)
+VALID METHODS  : bkash | nagad | rocket | upay  (always lowercase, always from your brand setup)
 SMS LATENCY    : 5–20 seconds (implement retry logic)
 IDEMPOTENCY    : each TrxID can only be verified once
 ```
@@ -453,9 +549,12 @@ Before going live, confirm all of the following:
 - [ ] Session `id` from `/create` is saved before presenting wallet numbers to the user
 - [ ] Only active wallet numbers (where `active_payments` flag is `true`) are shown to the user
 - [ ] The exact session amount is shown to the user — no rounding, no modification
+- [ ] User is asked to select which payment method they used before submitting TrxID
+- [ ] The `method` field sent to `/verify` is always in strict lowercase (`bkash`, `nagad`, `rocket`, `upay`)
+- [ ] The `method` field matches one of the channels returned in the `/create` response
+- [ ] The session `id` from `/create` is included in every `/verify` request
 - [ ] A retry mechanism with a 10-second delay exists for SMS sync latency
 - [ ] Your database prevents double-fulfillment if the same session is verified twice
-- [ ] `method` field is always sent in strict lowercase
 - [ ] Order fulfillment only happens after receiving `"status": true` from `/verify`
 
 ---
