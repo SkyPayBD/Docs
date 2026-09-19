@@ -78,7 +78,7 @@ Use this when:
 [JavaScript calls your backend proxy OR directly calls SkyPay API]
 POST https://core.skypaybd.top/api/payment/create
 Headers: { BRAND-KEY, Content-Type }
-Body:    { cus_name, cus_email, amount, success_url, cancel_url, metadata }
+Body:    { cus_name, cus_email, amount, success_url, cancel_url, meta_data }
          │
          ▼
 [SkyPay returns: { status: true, payment_url: "https://core.skypaybd.top/checkout/..." }]
@@ -107,7 +107,7 @@ POST https://core.skypaybd.top/api/payment/verify
 Body: { transaction_id: "BLA38KDK2M" }
          │
          ▼
-[API returns: { status: "COMPLETED", amount: "500.00", ... }]
+[API returns: { status: true, data: { status: "COMPLETED", amount: "500.00", ... } }]
          │
          ▼
 [JavaScript shows success message and runs fulfillment logic]
@@ -376,7 +376,7 @@ async function skyPayInitiateHosted() {
     cancel_url:  SKYPAY_CONFIG.CANCEL_URL,
     // Metadata: attach any relevant data from your site
     // This will be returned to you in the /verify response so you can identify the order.
-    metadata: {
+    meta_data: {
       // Add your internal order/user reference here:
       // order_id:  'ORD-' + Date.now(),
       // user_id:   window.currentUser?.id || null,
@@ -573,15 +573,15 @@ async function skyPayVerifyPayment(transactionId, paymentMethod, paymentAmount) 
     }
 
     // Handle verify response
-    if (data && data.status === 'COMPLETED') {
+    if (data && data.status === true && data.data?.status === 'COMPLETED') {
       // ✅ Payment is genuinely verified
-      skyPayOnVerified(data, paymentAmount, paymentMethod);
+      skyPayOnVerified(data.data, paymentAmount, paymentMethod);
 
     } else {
       // ❌ Payment not confirmed
       skyPayShowStep('failed');
       document.getElementById('skypay-failed-message').textContent =
-        'Payment verification returned: ' + (data?.status || 'unknown status') +
+        'Payment verification returned: ' + (data?.data?.status || 'unknown status') +
         '. If you believe this is an error, please contact support with Transaction ID: ' + transactionId;
     }
 
@@ -640,13 +640,13 @@ function skyPayOnVerified(verifyData, displayAmount, displayMethod) {
   //         amount: verifyData.amount,
   //         transaction_id: verifyData.transaction_id,
   //         payment_method: verifyData.payment_method,
-  //         metadata: verifyData.metadata,
+  //         meta_data: verifyData.meta_data,
   //       }),
   //     });
   //
   // (C) If this is an order:
   //     Mark the order as paid using your existing order system:
-  //     const orderId = verifyData.metadata?.order_id;
+  //     const orderId = verifyData.meta_data?.order_id;
   //     fetch('/api/orders/' + orderId + '/mark-paid', { method: 'POST', ... });
   //
   // (D) If this is a subscription:
@@ -994,7 +994,7 @@ async function skyPayInitiateHosted() {
     amount:      parseFloat(amount),
     success_url: SKYPAY_CONFIG.SUCCESS_URL,
     cancel_url:  SKYPAY_CONFIG.CANCEL_URL,
-    metadata:    { initiated_at: new Date().toISOString(), source: 'html_integration' },
+    meta_data:   { initiated_at: new Date().toISOString(), source: 'html_integration' },
   };
 
   try {
@@ -1037,19 +1037,20 @@ async function skyPayVerifyPayment(transactionId, paymentMethod, paymentAmount) 
     const res  = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify({ transaction_id: transactionId }) });
     const data = await res.json();
 
-    if (data?.status === 'COMPLETED') {
+    if (data?.status === true && data?.data?.status === 'COMPLETED') {
+      const info = data.data;
       skyPayShowStep('success');
       document.getElementById('skypay-success-message').textContent =
-        'BDT ' + (data.amount || paymentAmount) + ' via ' + capitalizeFirst(data.payment_method || paymentMethod || 'MFS') + ' — confirmed.';
+        'BDT ' + (info.amount || paymentAmount) + ' via ' + capitalizeFirst(info.payment_method || paymentMethod || 'MFS') + ' — confirmed.';
 
       const details = document.getElementById('skypay-success-details');
       if (details) {
         details.innerHTML = `
           <table class="skypay-details-table">
-            <tr><td>Customer</td><td><strong>${data.cus_name || '—'}</strong></td></tr>
-            <tr><td>Amount</td><td><strong>BDT ${data.amount || paymentAmount || '—'}</strong></td></tr>
-            <tr><td>Method</td><td><strong>${capitalizeFirst(data.payment_method || paymentMethod || '—')}</strong></td></tr>
-            <tr><td>Transaction ID</td><td><strong>${data.transaction_id || transactionId || '—'}</strong></td></tr>
+            <tr><td>Customer</td><td><strong>${info.cus_name || '—'}</strong></td></tr>
+            <tr><td>Amount</td><td><strong>BDT ${info.amount || paymentAmount || '—'}</strong></td></tr>
+            <tr><td>Method</td><td><strong>${capitalizeFirst(info.payment_method || paymentMethod || '—')}</strong></td></tr>
+            <tr><td>Transaction ID</td><td><strong>${info.transaction_id || transactionId || '—'}</strong></td></tr>
             <tr><td>Status</td><td><strong class="skypay-status-ok">✅ COMPLETED</strong></td></tr>
           </table>
         `;
@@ -1060,15 +1061,15 @@ async function skyPayVerifyPayment(transactionId, paymentMethod, paymentAmount) 
       // fetch('/api/user/add-balance', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ amount: data.amount, txn_id: data.transaction_id }),
+      //   body: JSON.stringify({ amount: info.amount, txn_id: info.transaction_id }),
       // });
 
-      console.log('[SkyPay] Verified OK:', data);
+      console.log('[SkyPay] Verified OK:', info);
 
     } else {
       skyPayShowStep('failed');
       document.getElementById('skypay-failed-message').textContent =
-        'Verification status: ' + (data?.status || 'unknown') +
+        'Verification status: ' + (data?.data?.status || 'unknown') +
         '. Contact support with TrxID: ' + transactionId;
     }
   } catch (err) {
@@ -1217,7 +1218,7 @@ Body:
   "amount":      500,
   "success_url": "https://yoursite.com/payment.html",
   "cancel_url":  "https://yoursite.com/payment.html?skypay_cancelled=true",
-  "metadata":    { "order_id": "ORD-001" }     ← optional, returned in verify
+  "meta_data":   { "order_id": "ORD-001" }     ← optional, returned in verify
 }
 
 Success Response:
@@ -1245,15 +1246,18 @@ Body:
 
 Success Response:
 {
-  "status":         "COMPLETED",
-  "cus_name":       "Full Name",
-  "cus_email":      "email@example.com",
-  "amount":         "500.00",
-  "transaction_id": "BLA38KDK2M",
-  "payment_method": "bkash",
-  "metadata":       { "order_id": "ORD-001" }
+  "status": true,
+  "data": {
+    "cus_name":       "Full Name",
+    "cus_email":      "email@example.com",
+    "amount":         500.00,
+    "transaction_id": "BLA38KDK2M",
+    "payment_method": "bkash",
+    "meta_data":      { "order_id": "ORD-001" },
+    "status":         "COMPLETED"
+  }
 }
-→ Only fulfill order when status === "COMPLETED"
+→ Only fulfill order when status === true AND data.status === "COMPLETED"
 ```
 
 ---
@@ -1295,7 +1299,7 @@ When SkyPay redirects the user to your `success_url` after payment, these parame
 | Rule | Details |
 |---|---|
 | **Never expose BRAND-KEY in production** | Use a backend proxy or serverless function (Cloudflare Worker, Vercel Function, AWS Lambda) to hold and use the BRAND-KEY server-side |
-| **Never fulfill on callback params alone** | Always call `/api/payment/verify` and check `status === "COMPLETED"` |
+| **Never fulfill on callback params alone** | Always call `/api/payment/verify` and check `status === true` AND `data.status === "COMPLETED"` |
 | **Never modify database from JS** | Database updates (adding balance, activating subscription) must go through your backend API |
 | **Always clean the URL after reading params** | Use `history.replaceState()` to remove payment params from the address bar |
 | **Idempotency** | If the user refreshes the success page, the URL params may still be there — your backend must check that the transaction ID hasn't already been fulfilled |
