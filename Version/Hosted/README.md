@@ -89,6 +89,7 @@ Content-Type: application/json
 ```
 
 > **No `SECRET-KEY` is required.** SkyPay v1 and v2 both use only your `BRAND-KEY` for authentication.
+> `API-KEY` and `SECRET-KEY` are accepted as aliases of `BRAND-KEY` — all three resolve to the same credential.
 
 ---
 
@@ -109,10 +110,11 @@ Customer on your website clicks "Pay Now" or "Checkout"
           ▼
 [Step 1] Your backend server calls:
          POST https://core.skypaybd.top/api/payment/create
-         with: cus_name, cus_email, amount, success_url, cancel_url, metadata
+         with: amount, success_url, cancel_url
+               + optional: cus_name, cus_email, meta_data, webhook_url, return_type
           │
           ▼
-SkyPay returns: { "status": true, "payment_url": "https://core.skypaybd.top/checkout/..." }
+SkyPay returns: { "status": true, "message": "...", "payment_url": "https://core.skypaybd.top/checkout/..." }
           │
           ▼
 [Step 2] Your server redirects the customer's browser to that payment_url
@@ -121,13 +123,14 @@ SkyPay returns: { "status": true, "payment_url": "https://core.skypaybd.top/chec
 Customer lands on SkyPay's secure hosted payment page
 Customer selects bKash / Nagad / Rocket / Upay
 Customer sends money from their MFS app
-Customer enters their SMS Transaction ID (TrxID) on the SkyPay page
-SkyPay verifies the TrxID automatically (5–20 seconds)
+Customer receives an SMS with a Transaction ID (TrxID)
+Customer enters that TrxID on the SkyPay page and clicks Verify
+SkyPay automatically matches the TrxID against incoming SMS (5–20 seconds)
           │
           ▼
 [Step 3] SkyPay redirects the customer back to your success_url
-         with result query parameters in the URL:
-         ?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&status=completed
+         with result query parameters appended to the URL:
+         ?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
           │
           ▼
 [Step 4] Your backend reads the transactionId from the callback URL
@@ -182,12 +185,13 @@ $response = Http::withHeaders([
     'BRAND-KEY'    => env('SKYPAY_BRAND_KEY'),
     'Content-Type' => 'application/json',
 ])->post('https://core.skypaybd.top/api/payment/create', [
-    'cus_name'    => $user->name,
-    'cus_email'   => $user->email,
     'amount'      => $order->total,
     'success_url' => route('payment.success'),
     'cancel_url'  => route('payment.cancel'),
-    'metadata'    => ['order_id' => $order->id],
+    'cus_name'    => $user->name,
+    'cus_email'   => $user->email,
+    'webhook_url' => route('payment.webhook'),
+    'meta_data'   => ['order_id' => $order->id],
 ]);
 
 $data = $response->json();
@@ -211,12 +215,12 @@ $response = $client->post('https://core.skypaybd.top/api/payment/create', [
         'Content-Type' => 'application/json',
     ],
     'json' => [
-        'cus_name'    => $this->request->getPost('name'),
-        'cus_email'   => $this->request->getPost('email'),
         'amount'      => $this->request->getPost('amount'),
         'success_url' => base_url('payment/success'),
         'cancel_url'  => base_url('payment/cancel'),
-        'metadata'    => ['user_id' => session()->get('user_id')],
+        'cus_name'    => $this->request->getPost('name'),
+        'cus_email'   => $this->request->getPost('email'),
+        'meta_data'   => ['user_id' => session()->get('user_id')],
     ],
 ]);
 
@@ -248,25 +252,29 @@ Content-Type: application/json
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `cus_name` | String | ✅ Yes | Full name of the customer |
-| `cus_email` | String | ✅ Yes | Valid email address of the customer |
-| `amount` | Numeric | ✅ Yes | Payable amount in BDT (integer or up to 2 decimal places, must be greater than 0) |
-| `success_url` | String (URL) | ✅ Yes | The full URL where the customer will be redirected after successful payment |
-| `cancel_url` | String (URL) | ✅ Yes | The full URL where the customer will be redirected if they cancel or abandon payment |
-| `metadata` | Object | ❌ Optional | Any custom key-value data you want to attach (order ID, user ID, cart reference, plan name, etc.) |
+| `amount` | Numeric | ✅ Required | Payable amount in BDT (integer or up to 2 decimal places, range 1 to 1,000,000) |
+| `success_url` | String (URL) | ✅ Required | The full URL where the customer will be redirected after successful payment |
+| `cancel_url` | String (URL) | ✅ Required | The full URL where the customer will be redirected if they cancel or abandon payment |
+| `meta_data` | Object / JSON | ⭐ Recommended | Any custom key-value data to attach (order ID, user ID, plan name, etc.). Supported alias: `metadata`. Must be a valid JSON object or JSON-encoded string. Returned as-is in the `/verify` response |
+| `cus_name` | String | ❌ Optional | Customer's full name. Supported aliases: `customer_name`, `c_name`, `name`. Defaults to `'Default Name'` |
+| `cus_email` | String | ❌ Optional | Customer's email address. Supported aliases: `customer_email`, `c_email`, `email`. Defaults to `'default@gmail.com'` |
+| `webhook_url` | String (URL) | ❌ Optional | Webhook notification URL. When set, SkyPay sends an automated server-to-server POST to this URL instantly upon payment completion |
+| `return_type` | String | ❌ Optional | HTTP method used when redirecting back to `success_url` or `cancel_url`. Accepts `GET` or `POST`. Defaults to `GET` |
 
-> **Tip on `metadata`:** Whatever you pass in `metadata` during `/create` will be returned back to you in the `/verify` response. Use it to store your internal order or user reference so you can identify which order to fulfill after verification — without storing the session in a database.
+> **Tip on `meta_data`:** Whatever you pass in `meta_data` during `/create` will be returned back to you in the `/verify` response. Use it to store your internal order or user reference so you can identify which order to fulfill after verification — without any extra database lookup.
 
 ### Example Request Body
 
 ```json
 {
-  "cus_name": "Siyam Ahmed",
-  "cus_email": "siyam@example.com",
   "amount": 500,
   "success_url": "https://mystore.com/payment/success",
   "cancel_url": "https://mystore.com/payment/cancel",
-  "metadata": {
+  "webhook_url": "https://mystore.com/api/payment-webhook",
+  "cus_name": "Siyam Ahmed",
+  "cus_email": "siyam@example.com",
+  "return_type": "GET",
+  "meta_data": {
     "order_id": "ORD-10928",
     "user_id": "USR-4821",
     "plan": "PRO_MONTHLY"
@@ -281,12 +289,13 @@ curl -X POST https://core.skypaybd.top/api/payment/create \
   -H "BRAND-KEY: your_brand_key_here" \
   -H "Content-Type: application/json" \
   -d '{
-    "cus_name": "Siyam Ahmed",
-    "cus_email": "siyam@example.com",
     "amount": 500,
     "success_url": "https://mystore.com/payment/success",
     "cancel_url": "https://mystore.com/payment/cancel",
-    "metadata": {
+    "webhook_url": "https://mystore.com/api/payment-webhook",
+    "cus_name": "Siyam Ahmed",
+    "cus_email": "siyam@example.com",
+    "meta_data": {
       "order_id": "ORD-10928",
       "user_id": "USR-4821"
     }
@@ -306,12 +315,13 @@ headers = {
 }
 
 payload = {
-    "cus_name": "Siyam Ahmed",
-    "cus_email": "siyam@example.com",
     "amount": 500,
     "success_url": "https://mystore.com/payment/success",
     "cancel_url": "https://mystore.com/payment/cancel",
-    "metadata": {
+    "webhook_url": "https://mystore.com/api/payment-webhook",
+    "cus_name": "Siyam Ahmed",
+    "cus_email": "siyam@example.com",
+    "meta_data": {
         "order_id": "ORD-10928",
         "user_id": "USR-4821"
     }
@@ -348,9 +358,10 @@ else:
 
 | HTTP Code | Response | Cause |
 |---|---|---|
-| `400` | `{"status": false, "message": "..."}` | Missing required field (`cus_name`, `cus_email`, `amount`, `success_url`, or `cancel_url`) |
+| `400` | `{"status": false, "message": "The amount field is required."}` | Missing required field (`amount`, `success_url`, or `cancel_url`) |
 | `401` | `{"status": false, "message": "Invalid or inactive BRAND-KEY provided."}` | Wrong or expired BRAND-KEY |
 | `403` | (Device not connected) | Merchant Android phone is offline or APK is not running |
+| `422` | `{"status": false, "message": "..."}` | Validation error — invalid URL format, amount out of range, or malformed `meta_data` JSON |
 
 ---
 
@@ -400,32 +411,45 @@ The customer will land on SkyPay's secure, hosted payment page where they:
 
 ## Step 3 — Handle the Callback (Customer Return URL)
 
-After the payment is completed, SkyPay redirects the customer back to your `success_url` with result details appended as **URL query parameters**.
+After the payment is completed (or cancelled), SkyPay redirects the customer back to your `success_url` or `cancel_url` with result details appended as **URL query parameters**.
 
-### Example Callback URL
+### Example Callback URLs
 
+**Successful Payment:**
 ```
 https://mystore.com/payment/success?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
+```
+
+**Failed / Cancelled Payment (no payment made):**
+```
+https://mystore.com/payment/cancel?transactionId=KUCSPL777353&paymentMethod=undetected&paymentAmount=500.00&paymentFee=0.00&status=failed
 ```
 
 ### Callback Query Parameters
 
 | Parameter | Type | Example | Description |
 |---|---|---|---|
-| `transactionId` | String | `BLA38KDK2M` | The SMS Transaction ID that was verified |
-| `paymentMethod` | String | `bkash` | The MFS channel used (`bkash`, `nagad`, `rocket`, `upay`) |
-| `paymentAmount` | Numeric | `500.00` | The net amount paid in BDT |
-| `paymentFee` | Numeric | `0.00` | Gateway fee applied (if any) |
-| `status` | String | `completed` | Payment outcome: `completed`, `pending`, or `failed` |
+| `transactionId` | String | `BLA38KDK2M` | The gateway-assigned transaction identifier. Always present regardless of payment outcome. Use this value to call the `/verify` endpoint |
+| `paymentMethod` | String | `bkash` | The MFS channel used: `bkash`, `nagad`, `rocket`, `upay`. Returns `undetected` if the customer did not complete payment |
+| `paymentAmount` | Numeric | `500.00` | The payment amount in BDT as submitted during `/create` |
+| `paymentFee` | Numeric | `0.00` | Gateway fee applied to the transaction. Returns `0` or `0.00` if no fee applies |
+| `status` | String | `completed` | Payment outcome: `completed` (verified and successful) or `failed` (cancelled or not completed) |
+
+### `status` Values
+
+| Value | Meaning | Action Required |
+|---|---|---|
+| `completed` | Customer successfully sent payment and SkyPay verified it via SMS sync | Proceed to backend verification via `/api/payment/verify` before fulfilling the order |
+| `failed` | Customer cancelled, did not pay, or payment could not be verified | Redirect customer to an error/retry page. Do not fulfill the order |
 
 ### How to Read Callback Parameters
 
 **PHP**
 ```php
-$transactionId  = $_GET['transactionId']  ?? null;
-$paymentMethod  = $_GET['paymentMethod']  ?? null;
-$paymentAmount  = $_GET['paymentAmount']  ?? null;
-$status         = $_GET['status']         ?? null;
+$transactionId = $_GET['transactionId']  ?? null;
+$paymentMethod = $_GET['paymentMethod']  ?? null;
+$paymentAmount = $_GET['paymentAmount']  ?? null;
+$status        = $_GET['status']         ?? null;
 
 if ($status === 'completed' && $transactionId) {
     // ⚠️ Do NOT fulfill the order yet!
@@ -493,7 +517,7 @@ Content-Type: application/json
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `transaction_id` | String | ✅ Yes | The `transactionId` received from the callback URL query parameter |
+| `transaction_id` | String | ✅ Required | The `transactionId` received from the callback URL query parameter. Supported aliases: `transactionId`, `transactionid`, `trx_id`, `trx`, `transaction` |
 
 ### Example Request Body
 
@@ -533,14 +557,15 @@ payload = {
 response = requests.post(url, headers=headers, json=payload)
 data = response.json()
 
-if data.get("status") == "COMPLETED":
+if data.get("status") == True and data.get("data", {}).get("status") == "COMPLETED":
+    info = data["data"]
     print("Payment verified!")
-    print("Customer:", data.get("cus_name"))
-    print("Amount:", data.get("amount"))
-    print("Method:", data.get("payment_method"))
-    print("Order ID from metadata:", data.get("metadata", {}).get("order_id"))
+    print("Customer:", info.get("cus_name"))
+    print("Amount:", info.get("amount"))
+    print("Method:", info.get("payment_method"))
+    print("Order ID from meta_data:", info.get("meta_data", {}).get("order_id"))
 else:
-    print("Payment not confirmed:", data.get("status"))
+    print("Payment not confirmed.")
 ```
 
 ### Example Request (PHP)
@@ -563,10 +588,10 @@ curl_close($ch);
 
 $data = json_decode($response, true);
 
-if ($data['status'] === 'COMPLETED') {
+if ($data['status'] === true && $data['data']['status'] === 'COMPLETED') {
     // ✅ Safe to fulfill the order
-    $orderId = $data['metadata']['order_id'] ?? null;
-    fulfillOrder($orderId, $data['amount']);
+    $orderId = $data['data']['meta_data']['order_id'] ?? null;
+    fulfillOrder($orderId, $data['data']['amount']);
 } else {
     // ❌ Do NOT fulfill
     showError("Payment could not be verified.");
@@ -577,16 +602,19 @@ if ($data['status'] === 'COMPLETED') {
 
 ```json
 {
-  "status": "COMPLETED",
-  "cus_name": "Siyam Ahmed",
-  "cus_email": "siyam@example.com",
-  "amount": "500.00",
-  "transaction_id": "BLA38KDK2M",
-  "payment_method": "bkash",
-  "metadata": {
-    "order_id": "ORD-10928",
-    "user_id": "USR-4821",
-    "plan": "PRO_MONTHLY"
+  "status": true,
+  "data": {
+    "cus_name": "Siyam Ahmed",
+    "cus_email": "siyam@example.com",
+    "amount": 500.00,
+    "transaction_id": "BLA38KDK2M",
+    "meta_data": {
+      "order_id": "ORD-10928",
+      "user_id": "USR-4821",
+      "plan": "PRO_MONTHLY"
+    },
+    "payment_method": "bkash",
+    "status": "COMPLETED"
   }
 }
 ```
@@ -595,22 +623,32 @@ if ($data['status'] === 'COMPLETED') {
 
 | Field | Type | Description |
 |---|---|---|
-| `status` | String | `"COMPLETED"` = payment is fully verified and confirmed. Other values: `"PENDING"`, `"ERROR"` |
-| `cus_name` | String | Customer name as provided during `/create` |
-| `cus_email` | String | Customer email as provided during `/create` |
-| `amount` | String | Exact amount confirmed and paid in BDT |
-| `transaction_id` | String | The verified SMS Transaction ID |
-| `payment_method` | String | Channel used (`bkash`, `nagad`, `rocket`, `upay`) |
-| `metadata` | Object | The exact metadata object you passed during `/create` — use this to identify which order to fulfill |
+| `status` | Boolean | Top-level `true` = request was processed successfully |
+| `data` | Object | Contains all verified transaction details |
+| `data.status` | String | `"COMPLETED"` = payment fully verified and confirmed. Other values: `"PENDING"`, `"FAILED"` |
+| `data.cus_name` | String | Customer name as provided during `/create` |
+| `data.cus_email` | String | Customer email as provided during `/create` |
+| `data.amount` | Numeric | Exact amount confirmed and paid in BDT |
+| `data.transaction_id` | String | The verified SMS Transaction ID |
+| `data.payment_method` | String | Channel used: `bkash`, `nagad`, `rocket`, or `upay` |
+| `data.meta_data` | Object | The exact `meta_data` object passed during `/create` — use this to identify which order to fulfill |
 
-> **Pro Tip:** Use the `metadata` field to pass your internal order ID or user ID during `/create`. It will be returned here in the verify response, so you can instantly know which order to activate without any extra database lookup.
+### `data.status` Values
+
+| Value | Meaning | Action Required |
+|---|---|---|
+| `COMPLETED` | Payment matched against merchant device SMS and confirmed | Safely fulfill the order — deliver goods, credit balance, or activate membership |
+| `PENDING` | Payment initialized but SMS not yet matched | Do not fulfill yet; retry after 10–15 seconds |
+| `FAILED` | Transaction failed, expired, or invalid | Payment not successful — inform customer to re-attempt |
+
+> **Pro Tip:** Use `meta_data` to pass your internal order ID or user ID during `/create`. It will be returned inside `data.meta_data` in the verify response, so you can instantly know which order to activate without any extra database lookup.
 
 ### Error Responses
 
 | HTTP Code | Response | Cause | Action |
 |---|---|---|---|
-| `400` | `{"status": false, "message": "Invalid transaction ID."}` | TrxID does not exist in SkyPay's verified records | Do not fulfill; transaction may be fake |
-| `400` | `{"status": false, "message": "Transaction already used."}` | This TrxID was already used to verify a previous order | Do not fulfill again; idempotency protection |
+| `400` | `{"status": false, "message": "Invalid transaction ID or transaction already used."}` | TrxID does not exist in SkyPay's records or was already claimed | Do not fulfill; may be fake or duplicate |
+| `400` | `{"status": false, "message": "This payment session has already been completed."}` | TrxID already used to verify a previous order | Idempotency protection — do not fulfill again |
 | `401` | `{"status": false, "message": "Invalid or inactive BRAND-KEY provided."}` | Wrong BRAND-KEY | Check your Dashboard |
 | `403` | (Device not connected) | Merchant Android phone is offline | Check your SkyPay APK phone |
 
@@ -618,7 +656,7 @@ if ($data['status'] === 'COMPLETED') {
 
 ## Step 5 — Fulfill the Order
 
-Once `/api/payment/verify` returns `"status": "COMPLETED"`, your platform can safely fulfill the order.
+Once `/api/payment/verify` returns `"status": true` at the top level **and** `"data.status": "COMPLETED"`, your platform can safely fulfill the order.
 
 **Examples of fulfillment actions:**
 - Add the verified `amount` to the user's wallet or credit balance in your database
@@ -650,11 +688,11 @@ However, in rare edge cases (network delays, slow SMS delivery), the transaction
 
 | Rule | Description |
 |---|---|
-| **Never trust callback URL params** | The `?transactionId=...&status=completed` in your `success_url` is for display only. Always verify via `/api/payment/verify` before fulfilling |
+| **Never trust callback URL params** | The `?transactionId=...&status=completed` in your `success_url` is for reference only. Always verify via `/api/payment/verify` before fulfilling |
 | **Server-side only** | All API calls (`/create` and `/verify`) must come from your backend server, never from client-side JavaScript or frontend code |
 | **Protect your BRAND-KEY** | Store it in `.env` files or environment variables. Never hardcode it in source code or commit it to version control |
 | **Idempotency** | Once a TrxID is verified, it is marked as claimed. Implement your own database check to prevent fulfilling the same order twice |
-| **Check `status` value** | Always check that `status === "COMPLETED"` — a `"PENDING"` or `"ERROR"` response means do NOT fulfill |
+| **Check both `status` fields** | Check that top-level `status === true` AND `data.status === "COMPLETED"` — a `"PENDING"` or `"FAILED"` value means do NOT fulfill |
 
 ---
 
@@ -662,12 +700,13 @@ However, in rare edge cases (network delays, slow SMS delivery), the transaction
 
 | HTTP Code | Meaning | What To Do |
 |---|---|---|
-| `200 OK` | Request processed successfully | Check `"status"` value in the response body |
-| `400 Bad Request` | Missing parameter or invalid data | Read the `"message"` field for details |
+| `200 OK` | Request processed successfully | Check `status` and `data.status` values in the response body |
+| `400 Bad Request` | Missing parameter or invalid data | Read the `message` field for details |
 | `401 Unauthorized` | Missing or invalid BRAND-KEY | Verify your key in the Dashboard |
 | `403 Forbidden` | No active Android device connected | Check that your SkyPay APK phone is online |
 | `404 Not Found` | Endpoint not found | Ensure you are using the correct URL and HTTP method |
 | `405 Method Not Allowed` | Wrong HTTP method (e.g. GET instead of POST) | Use POST for all endpoints |
+| `422 Unprocessable Entity` | Validation error on a specific field | Check URL format, amount range, or `meta_data` JSON structure |
 | `500 Internal Server Error` | Temporary cloud-side error | Wait briefly and retry, or contact SkyPay support |
 
 ---
@@ -681,22 +720,39 @@ CONTENT TYPE       : Content-Type: application/json
 
 ENDPOINT 1 — Create Hosted Payment URL
   POST /api/payment/create
-  Body: {
-    "cus_name":    "...",
-    "cus_email":   "...",
+  Required body: {
     "amount":      500,
     "success_url": "https://yoursite.com/payment/success",
-    "cancel_url":  "https://yoursite.com/payment/cancel",
-    "metadata":    { "order_id": "..." }   ← optional, returned in verify
+    "cancel_url":  "https://yoursite.com/payment/cancel"
   }
-  Returns: { "status": true, "payment_url": "https://core.skypaybd.top/checkout/..." }
+  Optional body: {
+    "meta_data":   { "order_id": "..." },   ← returned in /verify response
+    "cus_name":    "Siyam Ahmed",
+    "cus_email":   "siyam@example.com",
+    "webhook_url": "https://yoursite.com/api/webhook",
+    "return_type": "GET"                    ← or "POST"
+  }
+  Returns: { "status": true, "message": "...", "payment_url": "https://core.skypaybd.top/checkout/..." }
   → Redirect the customer's browser to payment_url immediately.
+
+CALLBACK — SkyPay redirects customer to your success_url or cancel_url with:
+  ?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
+  status values : completed | failed
+  paymentMethod : bkash | nagad | rocket | upay | undetected (if no payment made)
 
 ENDPOINT 2 — Verify Payment
   POST /api/payment/verify
   Body: { "transaction_id": "BLA38KDK2M" }
-  Returns: { "status": "COMPLETED", "amount": "500.00", "payment_method": "bkash", ... }
-  → Only fulfill the order when status === "COMPLETED"
+  Returns: {
+    "status": true,
+    "data": {
+      "cus_name": "...", "cus_email": "...", "amount": 500.00,
+      "transaction_id": "...", "payment_method": "bkash",
+      "meta_data": { "order_id": "..." },
+      "status": "COMPLETED"
+    }
+  }
+  → Only fulfill the order when data.status === "COMPLETED"
 
 SUPPORTED CHANNELS : bkash | nagad | rocket | upay
 SMS LATENCY        : 5–20 seconds (handled by SkyPay's hosted page)
@@ -716,9 +772,9 @@ Before going live, confirm all of the following:
 - [ ] Customer is redirected to `payment_url` immediately after `/create` response
 - [ ] Your `success_url` handler reads `transactionId` from the query parameters
 - [ ] A backend POST to `/api/payment/verify` is executed before any order fulfillment
-- [ ] Order fulfillment only happens when verify response has `"status": "COMPLETED"`
+- [ ] Order fulfillment only happens when verify response has `"status": true` AND `"data.status": "COMPLETED"`
 - [ ] Your database prevents double-fulfillment if `/verify` is called more than once for the same `transaction_id`
-- [ ] `metadata` includes your order/user reference so you can identify what to fulfill
+- [ ] `meta_data` includes your order/user reference so you can identify what to fulfill
 
 ---
 
@@ -734,7 +790,6 @@ Before going live, confirm all of the following:
 | WordPress WooCommerce Plugin | https://skypaybd.top/public/assets/downloads/WP.zip |
 | WHMCS Gateway Module | https://skypaybd.top/public/assets/downloads/WHMCS.zip |
 | SMM Panel Module | https://skypaybd.top/public/assets/downloads/SMM.zip |
-| WhatsApp Support | https://wa.me/+8801761844968 |
 | Telegram | https://t.me/BD_Prime_Minister |
 
 ---
