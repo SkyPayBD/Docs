@@ -201,7 +201,38 @@ Generates a hosted payment URL where customers choose their preferred MFS channe
 
 ### 4.3 Customer Return Callback & Query Parameters
 
-After the customer completes (or cancels) payment on the SkyPay hosted page, they are redirected back to your `success_url` or `cancel_url`. Your backend must then verify the transaction using the endpoint below — **never trust the redirect parameters alone**.
+After the customer completes (or cancels) payment on the SkyPay hosted page, they are redirected back to your `success_url` or `cancel_url` with the following query parameters appended automatically by the gateway.
+
+#### Example Redirect URLs
+
+**Successful Payment:**
+```
+https://mystore.com/payment/success?paymentMethod=bkash&transactionId=KUCSPL777353&paymentAmount=250&paymentFee=0&status=completed
+```
+
+**Failed / Cancelled Payment (no payment made):**
+```
+https://mystore.com/payment/cancel?paymentMethod=undetected&transactionId=KUCSPL777353&paymentAmount=100&paymentFee=0&status=failed
+```
+
+#### Callback Query Parameters
+
+| Parameter       | Type    | Description |
+|---|---|---|
+| `paymentMethod`  | String  | The MFS channel used: `bkash`, `nagad`, `rocket`, `upay`. Returns `undetected` if the customer did not complete payment. |
+| `transactionId`  | String  | The gateway-assigned transaction identifier. Always present regardless of payment outcome. Use this to call the verify endpoint. |
+| `paymentAmount`  | Numeric | The payment amount in BDT as submitted during session creation. |
+| `paymentFee`     | Numeric | Gateway fee charged for the transaction. Returns `0` if no fee applies. |
+| `status`         | String  | Final payment outcome. Values: `completed` (successful), `failed` (payment not completed or cancelled). |
+
+#### `status` Values
+
+| Value       | Meaning | Action Required |
+|---|---|---|
+| `completed` | Customer successfully sent the payment and it was verified by SMS sync. | Proceed to backend verification via `/api/payment/verify` before fulfilling the order. |
+| `failed`    | Customer cancelled, did not pay, or payment could not be verified. | Redirect customer to an error/retry page. Do not fulfill the order. |
+
+> ⚠️ **Critical Security Rule:** Never fulfill an order based on redirect parameters alone. The `status=completed` in the URL is a **hint only** — always confirm by calling `POST /api/payment/verify` from your backend server with the `transactionId` before activating accounts, shipping goods, or crediting balances.
 
 ---
 
