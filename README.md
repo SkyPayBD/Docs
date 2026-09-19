@@ -343,9 +343,9 @@ Initializes a pending payment session and returns the active merchant wallet num
         "agent": false,
         "payment": true
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXXXX",
       "agent": "",
-      "payment": "01761844968"
+      "payment": "01XXXXXXXXXX"
     },
     {
       "name": "nagad",
@@ -353,7 +353,7 @@ Initializes a pending payment session and returns the active merchant wallet num
         "personal": true,
         "agent": false
       },
-      "personal": "01761844968",
+      "personal": "01XXXXXXXXXX",
       "agent": ""
     },
     {
@@ -362,7 +362,7 @@ Initializes a pending payment session and returns the active merchant wallet num
         "personal": true,
         "agent": false
       },
-      "personal": "017257649946",
+      "personal": "01XXXXXXXXXX",
       "agent": ""
     },
     {
@@ -371,7 +371,7 @@ Initializes a pending payment session and returns the active merchant wallet num
         "personal": true,
         "agent": false
       },
-      "personal": "017284684646",
+      "personal": "01XXXXXXXXXX",
       "agent": ""
     }
   ]
@@ -388,9 +388,9 @@ When your backend receives the response from `/create`, present the active walle
 💳 Order #VIP_SUB_01 | Payable: 500 BDT
 
 Please send the exact amount to any of our official wallets:
-• bKash (Personal): 01761844968 (Send Money)
-• Nagad (Personal): 01761844968 (Send Money)
-• Rocket (Personal): 017257649946 (Send Money)
+• bKash (Personal): 01XXXXXXXXXX (Send Money)
+• Nagad (Personal): 01XXXXXXXXXX (Send Money)
+• Rocket (Personal): 01XXXXXXXXXX (Send Money)
 
 After completing the payment in your MFS app, reply with your Transaction ID (TrxID):
 ```
