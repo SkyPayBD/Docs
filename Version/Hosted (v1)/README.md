@@ -1,267 +1,238 @@
-# SkyPay Hosted Checkout Gateway — API v1 Complete Integration Guide
+# SkyPay - BD · Hosted Checkout Gateway
 
-> **For Developers, Web Builders & Platform Integrators**
-> This document is the complete reference for integrating SkyPay's **Hosted Checkout Gateway (API v1)** into any website, web application, or Telegram bot — where the user is redirected to SkyPay's secure hosted payment page to complete their transaction.
+<div align="center">
+
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789095642_d2193dfe3264f3a5ec9c.png" width="100" alt="SkyPay Logo" />
+
+<br/>
+
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789098593_de7d9d238ad2e0178762.png" width="420" alt="SkyPay Banner" />
+
+<br/><br/>
+
+**API v1 — Hosted Checkout Gateway**
+
+*Complete integration reference for websites, web stores, WHMCS, WooCommerce, and web-based platforms.*
+
+<br/>
+
+[![Official Website](https://img.shields.io/badge/Official%20Website-skypaybd.top-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://skypaybd.top)
+[![Online Docs](https://img.shields.io/badge/Online%20Docs-skypaybd.top%2Fdocs-7c3aed?style=for-the-badge&logo=gitbook&logoColor=white)](https://skypaybd.top/docs)
+[![API Core](https://img.shields.io/badge/API%20Core-core.skypaybd.top-0f172a?style=for-the-badge&logo=serverfault&logoColor=white)](https://core.skypaybd.top)
+[![GitHub](https://img.shields.io/badge/GitHub-SkyPayBD-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SkyPayBD)
+
+</div>
 
 ---
 
-## What Is the Hosted Gateway?
+## 💳 Supported Payment Methods
 
-SkyPay Hosted Checkout Gateway (v1) is a **redirect-based payment flow** for Bangladesh.
+<div align="center">
+
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1720001734_bed271b1089aa12b9887.png" height="36" alt="bKash" />&nbsp;&nbsp;&nbsp;
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1717231942_d63fe41b5e42176d4936.png" height="36" alt="Nagad" />&nbsp;&nbsp;&nbsp;
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1717239532_10348cc78dc0b990a8e5.png" height="36" alt="Rocket" />&nbsp;&nbsp;&nbsp;
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1717239551_f0b3a097df92d481e17f.png" height="36" alt="Upay" />&nbsp;&nbsp;&nbsp;
+<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1717513584_d7ff0294bf6b6c98db7b.png" height="36" alt="Binance" />
+
+</div>
+
+<br/>
+
+| Channel | Personal (Send Money) | Agent (Cash In) | Merchant Payment |
+|---|:---:|:---:|:---:|
+| **bKash** | ✅ | ✅ | ✅ |
+| **Nagad** | ✅ | ✅ | 🔄 Under Review |
+| **Rocket** | ✅ | ✅ | 🔄 Under Review |
+| **Upay** | ✅ | ❌ | 🔄 Under Review |
+| **Binance Pay** | ✅ (USDT) | — | — |
+
+---
+
+## 📋 Table of Contents
+
+- [What Is the Hosted Gateway?](#-what-is-the-hosted-gateway)
+- [When to Use API v1](#-when-to-use-api-v1)
+- [v1 vs v2 Comparison](#-v1-vs-v2-comparison)
+- [Prerequisites](#-prerequisites)
+- [Authentication](#-authentication)
+- [API Endpoints](#-api-endpoints)
+- [Integration Flow](#-end-to-end-integration-flow)
+- [Step 1 — Create Payment URL](#step-1--create-hosted-payment-url)
+- [Step 2 — Redirect Customer](#step-2--redirect-customer-to-payment-page)
+- [Step 3 — Handle Callback](#step-3--handle-the-callback-return-url)
+- [Step 4 — Verify Payment](#step-4--verify-the-payment-mandatory)
+- [Step 5 — Fulfill the Order](#step-5--fulfill-the-order)
+- [Code Examples](#-code-examples)
+- [HTTP Status Codes](#-http-status-code-reference)
+- [Security Rules](#-security-rules)
+- [SMS Sync Latency](#-sms-synchronization-latency)
+- [Integration Checklist](#-integration-checklist)
+- [Pre-Built Modules](#-pre-built-cms-modules)
+- [Contact & Support](#-contact--support)
+- [Quick Links](#-quick-links)
+
+---
+
+## 🌐 What Is the Hosted Gateway?
+
+**SkyPay Hosted Checkout Gateway (API v1)** is a redirect-based payment flow for Bangladesh.
 
 Instead of building any payment UI yourself, your platform:
-1. Creates a payment session via API and receives a **hosted payment URL**
-2. Redirects the customer's browser to that SkyPay-hosted payment page
-3. The customer selects their payment channel (bKash / Nagad / Rocket / Upay), sends money, and enters their TrxID on SkyPay's page
-4. SkyPay verifies the payment and redirects the customer back to your website with a result
-5. Your backend verifies the transaction via API and fulfills the order
 
-**Supported Payment Channels:** bKash · Nagad · Rocket · Upay
+1. Creates a payment session via API → receives a **hosted payment URL**
+2. Redirects the customer's browser to that SkyPay-hosted page
+3. Customer selects their channel (bKash / Nagad / Rocket / Upay / Binance), sends money, enters their TrxID
+4. SkyPay verifies the payment via SMS sync and redirects the customer back to your site
+5. Your backend calls the verify endpoint and fulfills the order
 
 ---
 
-## When Should You Use This API?
+## 🎯 When to Use API v1
 
 Use the **Hosted Gateway (v1)** when:
 
-- You are building a **website, online store, or web application** (WordPress, Laravel, CodeIgniter, raw PHP, React, Node.js, etc.)
-- You want to accept payments **without designing any payment UI** — SkyPay handles the entire payment interface for you
-- You have a **WHMCS billing panel**, **WooCommerce store**, **SMM panel**, or similar web-based platform
-- Development speed is the priority — this can be integrated in **under 15 minutes**
+- You are building a **website, online store, or web application** (WordPress, Laravel, CodeIgniter, PHP, React, Node.js, etc.)
+- You want to accept payments **without building any payment UI** — SkyPay handles the full interface
+- You have a **WHMCS billing panel**, **WooCommerce store**, or **SMM panel**
+- Development speed is the priority — integration takes **under 15 minutes**
 
-> ⚠️ **Note for Android / Mobile App Developers:**
-> The Hosted Gateway relies on browser redirects. This works inside a WebView but is not ideal for native Android or iOS apps where there is no browser context. For native mobile apps, consider using [SkyPay Headless API v2](./SkyPay_Headless_API_v2.md) instead, which gives you complete control over the in-app payment experience without any redirects.
+> ⚠️ **For Telegram bots or native mobile apps:** The Hosted Gateway uses browser redirects. For a fully in-chat or in-app experience without any redirect, use [SkyPay Headless API v2](./README_v2.md) instead.
 
 ---
 
-## How Is This Different from API v2?
+## 🔄 v1 vs v2 Comparison
 
 | Feature | Hosted Gateway (v1) | Headless API (v2) |
 |---|---|---|
-| User Experience | Redirected to SkyPay's page | Stays inside your app/bot |
-| Payment UI | Built by SkyPay | You build it yourself |
-| Best For | Websites, Web Stores, WHMCS | Telegram Bots, Mobile Apps, SPAs |
-| Setup Time | ~15 minutes | 1–2 hours |
-| Telegram Bot Support | Needs to open browser link | Native in-chat flow |
+| User Experience | Redirected to SkyPay's hosted page | Stays inside your app / bot |
+| Payment UI | Built and handled by SkyPay | You build it yourself |
+| Best For | Websites, Web Stores, WHMCS, SMM Panels | Telegram Bots, Mobile Apps, SPAs |
+| Setup Time | ~15 minutes | ~1–2 hours |
+| Telegram Bot Support | Opens external browser link | Native in-chat flow |
 | Android App Support | Requires WebView | Native in-app UI |
+| Auth Header | `BRAND-KEY`, `API-KEY`, `SECRET-KEY`, or `?api_key=` | `BRAND-KEY` only |
 
 ---
 
-## Prerequisites (Before You Start)
+## 📦 Prerequisites
 
-### 1. BRAND-KEY
-- Log into your **SkyPay Merchant Dashboard**
-- Create a **Brand** under your merchant account
+### 1. Get Your BRAND-KEY
+
+- Log in to your **SkyPay Merchant Dashboard**
+- Go to **[Brand Management](https://skypaybd.top/user/brands)** → create a Brand
 - Copy the generated **BRAND-KEY**
-- This key ties all payment sessions to your merchant account and connected Android device
-- **Store it securely in your `.env` file or secret manager — never expose it in frontend code or commit it to any repository**
+- Store it securely in your `.env` file — **never expose it in frontend code or commit it to any repository**
 
-### 2. Merchant Android Device (SMS Sync Bridge)
-- Install the **SkyPay Merchant Sync APK** on a dedicated Android smartphone (Android 7.0+)
-- The phone must contain your active merchant SIM cards (bKash, Nagad, Rocket, Upay)
-- Grant **SMS Listener Permission** and **Notification Access**
-- Disable **Battery Optimization** for the SkyPay app so it stays alive in the background
-- Enter your **BRAND-KEY** inside the app and tap **Connect Device**
-- Keep this phone **powered on and connected to the internet 24/7**
+### 2. Connect Your Android Device
 
-> Without the connected Android device, all payment sessions will return `403 Forbidden`.
-> The Android phone reads your incoming MFS payment SMS notifications and pushes them to SkyPay's cloud server in real-time. This is what makes automated verification possible.
+- Download and install the **[SkyPay Merchant Sync APK](https://skypaybd.top/public/assets/downloads/SkyPay.apk)** on a dedicated Android phone
+- The phone must have active MFS SIM cards (bKash / Nagad / Rocket personal or agent accounts)
+- Log in with your registered email and **Device Key** from [Device Management](https://skypaybd.top/user/devices)
+- Grant all SMS permissions when prompted
+- Disable **Battery Optimization** for the SkyPay app
+- Keep this phone **powered on and connected to internet 24/7**
 
----
-
-## API Base URL
-
-All v1 Hosted Gateway calls go to:
-
-```
-https://core.skypaybd.top
-```
+> Without an active connected Android device, all payment sessions will return `403 Forbidden`.
 
 ---
 
-## Authentication
+## 🔐 Authentication
 
-Every API request requires these headers:
+Every API request requires the following headers:
 
-```
-BRAND-KEY: your_unique_brand_key_here
+```http
+BRAND-KEY: your_brand_key_here
 Content-Type: application/json
 ```
 
-> **No `SECRET-KEY` is required.** SkyPay v1 and v2 both use only your `BRAND-KEY` for authentication.
-> `API-KEY` and `SECRET-KEY` are accepted as aliases of `BRAND-KEY` — all three resolve to the same credential.
+### Accepted Auth Header Aliases (v1 only)
+
+| Header / Parameter | Accepted? |
+|---|:---:|
+| `BRAND-KEY` | ✅ Recommended |
+| `API-KEY` | ✅ Alias |
+| `SECRET-KEY` | ✅ Alias |
+| `?api_key=` (URL query param) | ✅ Alias |
+
+> All four resolve to the same credential. Use `BRAND-KEY` as the recommended header name.
+
+> ⚠️ **Note:** These aliases apply to **v1 only**. The v2 Headless API accepts `BRAND-KEY` header exclusively.
 
 ---
 
-## Full Endpoint Directory
+## 📡 API Endpoints
 
 | Action | Method | Full Endpoint URL |
-|---|---|---|
+|---|:---:|---|
 | Create Hosted Payment URL | `POST` | `https://core.skypaybd.top/api/payment/create` |
-| Verify Payment Order | `POST` | `https://core.skypaybd.top/api/payment/verify` |
+| Verify Payment | `POST` | `https://core.skypaybd.top/api/payment/verify` |
 
 ---
 
-## End-to-End Integration Flow
+## 🔁 End-to-End Integration Flow
 
 ```
-Customer on your website clicks "Pay Now" or "Checkout"
-          │
-          ▼
-[Step 1] Your backend server calls:
+Customer clicks "Pay Now" on your website
+        │
+        ▼
+[Step 1] Your backend calls:
          POST https://core.skypaybd.top/api/payment/create
-         with: amount, success_url, cancel_url
-               + optional: cus_name, cus_email, meta_data, webhook_url, return_type
-          │
-          ▼
-SkyPay returns: { "status": true, "message": "...", "payment_url": "https://core.skypaybd.top/checkout/..." }
-          │
-          ▼
-[Step 2] Your server redirects the customer's browser to that payment_url
-          │
-          ▼
-Customer lands on SkyPay's secure hosted payment page
-Customer selects bKash / Nagad / Rocket / Upay
-Customer sends money from their MFS app
-Customer receives an SMS with a Transaction ID (TrxID)
-Customer enters that TrxID on the SkyPay page and clicks Verify
-SkyPay automatically matches the TrxID against incoming SMS (5–20 seconds)
-          │
-          ▼
-[Step 3] SkyPay redirects the customer back to your success_url
-         with result query parameters appended to the URL:
-         ?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
-          │
-          ▼
-[Step 4] Your backend reads the transactionId from the callback URL
-         and calls POST https://core.skypaybd.top/api/payment/verify
-         to confirm the transaction is genuinely completed
-          │
-          ▼
-[Step 5] Verification confirmed → Fulfill the order
-         (activate subscription, add balance, ship product, etc.)
-```
-
----
-
-## Real-World Integration Examples
-
-### Example 1 — Standard Website / PHP Store
-
-```
-1. Customer adds items to cart and proceeds to checkout.
-2. Customer selects "SkyPay" as payment method and clicks "Place Order".
-3. Your PHP backend sends a POST to /api/payment/create with order details.
-4. SkyPay returns a payment_url.
-5. Your backend does: header("Location: " . $payment_url); exit;
-6. Customer lands on SkyPay's hosted payment page.
-7. Customer pays via bKash and enters TrxID on SkyPay's page.
-8. SkyPay verifies and redirects customer to your success_url:
-   https://yourstore.com/checkout/success?transactionId=BLA38KDK2M&status=completed
-9. Your success_url handler calls /api/payment/verify with the transactionId.
-10. Verified → order marked as paid, customer sees success screen.
-```
-
-### Example 2 — Telegram Bot (with browser redirect)
-
-```
-1. User sends /deposit 500 to the bot.
-2. Bot's backend calls /api/payment/create and gets a payment_url.
-3. Bot sends the user an inline button: [💳 Pay 500 BDT — Click Here]
-   The button opens the payment_url in the user's phone browser.
-4. User completes payment on SkyPay's hosted page.
-5. SkyPay redirects the user to your success_url.
-6. Your success_url backend verifies the transaction and credits the user's bot account.
-7. (Optional) Bot sends a confirmation message to the user's Telegram chat.
-```
-
-> **Note:** For a fully in-chat Telegram bot experience without any browser redirect, use [Headless API v2](./SkyPay_Headless_API_v2.md).
-
-### Example 3 — Laravel Application
-
-```php
-// In your PaymentController.php
-$response = Http::withHeaders([
-    'BRAND-KEY'    => env('SKYPAY_BRAND_KEY'),
-    'Content-Type' => 'application/json',
-])->post('https://core.skypaybd.top/api/payment/create', [
-    'amount'      => $order->total,
-    'success_url' => route('payment.success'),
-    'cancel_url'  => route('payment.cancel'),
-    'cus_name'    => $user->name,
-    'cus_email'   => $user->email,
-    'webhook_url' => route('payment.webhook'),
-    'meta_data'   => ['order_id' => $order->id],
-]);
-
-$data = $response->json();
-
-if ($data['status']) {
-    return redirect($data['payment_url']);
-} else {
-    return back()->withErrors(['payment' => 'Payment initiation failed.']);
-}
-```
-
-### Example 4 — CodeIgniter 4
-
-```php
-// In your Payment.php controller
-$client = \Config\Services::curlrequest();
-
-$response = $client->post('https://core.skypaybd.top/api/payment/create', [
-    'headers' => [
-        'BRAND-KEY'    => getenv('SKYPAY_BRAND_KEY'),
-        'Content-Type' => 'application/json',
-    ],
-    'json' => [
-        'amount'      => $this->request->getPost('amount'),
-        'success_url' => base_url('payment/success'),
-        'cancel_url'  => base_url('payment/cancel'),
-        'cus_name'    => $this->request->getPost('name'),
-        'cus_email'   => $this->request->getPost('email'),
-        'meta_data'   => ['user_id' => session()->get('user_id')],
-    ],
-]);
-
-$data = json_decode($response->getBody(), true);
-
-if ($data['status']) {
-    return redirect()->to($data['payment_url']);
-}
+         Body: { amount, success_url, cancel_url, ... }
+        │
+        ▼
+SkyPay returns: { "status": true, "payment_url": "https://core.skypaybd.top/api/execute/..." }
+        │
+        ▼
+[Step 2] Your backend redirects the customer's browser to payment_url
+        │
+        ▼
+Customer lands on SkyPay's secure hosted page
+Customer selects bKash / Nagad / Rocket / Upay / Binance
+Customer sends money and enters their TrxID
+SkyPay verifies via SMS sync (5–20 seconds)
+        │
+        ▼
+[Step 3] SkyPay redirects customer back to your success_url or cancel_url
+         with query params: ?transactionId=XXX&paymentMethod=bkash&paymentAmount=500&paymentFee=0&status=completed
+        │
+        ▼
+[Step 4] Your backend reads transactionId from callback URL
+         and calls: POST https://core.skypaybd.top/api/payment/verify
+         Body: { "transaction_id": "XXX" }
+        │
+        ▼
+[Step 5] Verify response returns data.status = "COMPLETED"
+         → Safely fulfill the order
 ```
 
 ---
 
 ## Step 1 — Create Hosted Payment URL
 
-### Endpoint
-
-```
-POST https://core.skypaybd.top/api/payment/create
-```
+**`POST https://core.skypaybd.top/api/payment/create`**
 
 ### Request Headers
 
-```
+```http
 BRAND-KEY: your_brand_key_here
 Content-Type: application/json
 ```
 
-### Request Body Parameters
+### Request Parameters
 
-| Parameter | Type | Required | Description |
+| Parameter | Type | Status | Description |
 |---|---|---|---|
-| `amount` | Numeric | ✅ Required | Payable amount in BDT (integer or up to 2 decimal places, range 1 to 1,000,000) |
-| `success_url` | String (URL) | ✅ Required | The full URL where the customer will be redirected after successful payment |
-| `cancel_url` | String (URL) | ✅ Required | The full URL where the customer will be redirected if they cancel or abandon payment |
-| `meta_data` | Object / JSON | ⭐ Recommended | Any custom key-value data to attach (order ID, user ID, plan name, etc.). Supported alias: `metadata`. Must be a valid JSON object or JSON-encoded string. Returned as-is in the `/verify` response |
-| `cus_name` | String | ❌ Optional | Customer's full name. Supported aliases: `customer_name`, `c_name`, `name`. Defaults to `'Default Name'` |
-| `cus_email` | String | ❌ Optional | Customer's email address. Supported aliases: `customer_email`, `c_email`, `email`. Defaults to `'default@gmail.com'` |
-| `webhook_url` | String (URL) | ❌ Optional | Webhook notification URL. When set, SkyPay sends an automated server-to-server POST to this URL instantly upon payment completion |
-| `return_type` | String | ❌ Optional | HTTP method used when redirecting back to `success_url` or `cancel_url`. Accepts `GET` or `POST`. Defaults to `GET` |
+| `amount` | Numeric | **Required** | Payable amount in BDT. Must be numeric, between `1` and `1,000,000`. Integer or decimal accepted. |
+| `success_url` | String (URL) | **Required** | Valid URL to redirect the customer after successful payment. Must be a valid URL format. |
+| `cancel_url` | String (URL) | **Required** | Valid URL to redirect the customer if they cancel or fail to complete payment. Must be a valid URL format. |
+| `cus_name` | String | Optional | Customer full name. Aliases: `customer_name`, `c_name`, `name`. Defaults to `Default Name` if not provided. |
+| `cus_email` | String | Optional | Customer email address. Aliases: `customer_email`, `c_email`, `email`. Defaults to `default@gmail.com` if not provided. |
+| `meta_data` | Object / JSON | Optional | Any JSON object with custom data (e.g. `order_id`, `user_id`). Alias: `metadata`. Returned as-is in the `/verify` response — use this to identify which order to fulfill. |
+| `webhook_url` | String (URL) | Optional | If provided, SkyPay sends an automated server-to-server POST to this URL immediately upon payment completion. Must be a valid URL format. |
+| `return_type` | String | Optional | HTTP method used for redirect callbacks. `GET` or `POST`. Defaults to `GET`. |
 
-> **Tip on `meta_data`:** Whatever you pass in `meta_data` during `/create` will be returned back to you in the `/verify` response. Use it to store your internal order or user reference so you can identify which order to fulfill after verification — without any extra database lookup.
+> **`meta_data` tip:** Pass your internal `order_id` or `user_id` in `meta_data` during `/create`. It will be returned in the `/verify` response inside `data.meta_data`, letting you instantly identify the order without any extra database lookup.
 
 ### Example Request Body
 
@@ -271,8 +242,8 @@ Content-Type: application/json
   "success_url": "https://mystore.com/payment/success",
   "cancel_url": "https://mystore.com/payment/cancel",
   "webhook_url": "https://mystore.com/api/payment-webhook",
-  "cus_name": "Siyam Ahmed",
-  "cus_email": "siyam@example.com",
+  "cus_name": "John Doe",
+  "cus_email": "john@example.com",
   "return_type": "GET",
   "meta_data": {
     "order_id": "ORD-10928",
@@ -282,96 +253,52 @@ Content-Type: application/json
 }
 ```
 
-### Example Request (cURL)
-
-```bash
-curl -X POST https://core.skypaybd.top/api/payment/create \
-  -H "BRAND-KEY: your_brand_key_here" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount": 500,
-    "success_url": "https://mystore.com/payment/success",
-    "cancel_url": "https://mystore.com/payment/cancel",
-    "webhook_url": "https://mystore.com/api/payment-webhook",
-    "cus_name": "Siyam Ahmed",
-    "cus_email": "siyam@example.com",
-    "meta_data": {
-      "order_id": "ORD-10928",
-      "user_id": "USR-4821"
-    }
-  }'
-```
-
-### Example Request (Python)
-
-```python
-import requests
-
-url = "https://core.skypaybd.top/api/payment/create"
-
-headers = {
-    "BRAND-KEY": "your_brand_key_here",
-    "Content-Type": "application/json"
-}
-
-payload = {
-    "amount": 500,
-    "success_url": "https://mystore.com/payment/success",
-    "cancel_url": "https://mystore.com/payment/cancel",
-    "webhook_url": "https://mystore.com/api/payment-webhook",
-    "cus_name": "Siyam Ahmed",
-    "cus_email": "siyam@example.com",
-    "meta_data": {
-        "order_id": "ORD-10928",
-        "user_id": "USR-4821"
-    }
-}
-
-response = requests.post(url, headers=headers, json=payload)
-data = response.json()
-
-if data.get("status"):
-    print("Redirect customer to:", data.get("payment_url"))
-else:
-    print("Error:", data.get("message"))
-```
-
 ### Success Response (HTTP 200)
 
 ```json
 {
   "status": true,
   "message": "Payment URL generated successfully.",
-  "payment_url": "https://core.skypaybd.top/checkout/order/f7b3a9c2d1e04856"
+  "payment_url": "https://core.skypaybd.top/api/execute/f89f359b182a25f58d57ae322c956c29"
 }
 ```
 
-### Response Fields Explained
+### Response Fields
 
 | Field | Type | Description |
 |---|---|---|
-| `status` | Boolean | `true` = payment session created successfully; `false` = something went wrong |
+| `status` | Boolean | `true` = session created successfully |
 | `message` | String | Human-readable status message |
-| `payment_url` | String (URL) | The secure SkyPay-hosted checkout URL — **redirect your customer to this URL immediately** |
+| `payment_url` | String (URL) | SkyPay-hosted checkout URL. **Redirect your customer here immediately.** |
 
 ### Error Responses
 
-| HTTP Code | Response | Cause |
+| HTTP Code | Message | Cause |
 |---|---|---|
-| `400` | `{"status": false, "message": "The amount field is required."}` | Missing required field (`amount`, `success_url`, or `cancel_url`) |
-| `401` | `{"status": false, "message": "Invalid or inactive BRAND-KEY provided."}` | Wrong or expired BRAND-KEY |
-| `403` | (Device not connected) | Merchant Android phone is offline or APK is not running |
-| `422` | `{"status": false, "message": "..."}` | Validation error — invalid URL format, amount out of range, or malformed `meta_data` JSON |
+| `422` | `The amount field is required.` | `amount` field missing |
+| `422` | `The amount must be a valid numeric value.` | Non-numeric amount provided |
+| `422` | `Amount out of range. Allowed limit is between 1 and 1,000,000.` | Amount outside valid range |
+| `422` | `The success_url field is required.` | Missing `success_url` |
+| `422` | `The success_url must be a valid URL format.` | Invalid URL format for `success_url` |
+| `422` | `The cancel_url field is required.` | Missing `cancel_url` |
+| `422` | `The cancel_url must be a valid URL format.` | Invalid URL format for `cancel_url` |
+| `422` | `The webhook_url must be a valid URL format.` | Invalid URL format for `webhook_url` (if provided) |
+| `422` | `The meta_data field must be a valid JSON object.` | Malformed `meta_data` JSON string |
+| `401` | `API key is missing. Please provide API-KEY, BRAND-KEY or SECRET-KEY in headers or api_key parameter.` | No auth header provided |
+| `403` | `Invalid or inactive API credentials provided.` | Wrong or inactive BRAND-KEY |
+| `500` | `Failed to initialize transaction record in database.` | Server-side DB error |
 
 ---
 
 ## Step 2 — Redirect Customer to Payment Page
 
-After receiving the `payment_url` from Step 1, **immediately redirect the customer's browser** to that URL. Do not store or reuse the URL — each URL is tied to a single payment session.
+After receiving `payment_url` from Step 1, **immediately redirect the customer's browser** to that URL.
 
-### Redirect Methods by Platform
+> Each `payment_url` is tied to a single payment session — do not store or reuse it.
 
-**PHP (Standard)**
+### Redirect by Platform
+
+**PHP**
 ```php
 header("Location: " . $data['payment_url']);
 exit;
@@ -382,78 +309,81 @@ exit;
 return redirect($data['payment_url']);
 ```
 
+**CodeIgniter 4**
+```php
+return redirect()->to($data['payment_url']);
+```
+
 **Node.js / Express**
 ```javascript
 res.redirect(data.payment_url);
 ```
 
-**HTML / JavaScript (Frontend, only if backend passed URL)**
+**JavaScript (Frontend)**
 ```javascript
 window.location.href = data.payment_url;
 ```
 
 **Telegram Bot (Inline Button)**
 ```
-Send an inline keyboard button with the payment_url as the URL:
-[💳 Pay Now — Click to Open Payment Page]
+Send an inline keyboard button with payment_url as the URL:
+[💳 Pay Now — Open Payment Page]
 ```
 
-The customer will land on SkyPay's secure, hosted payment page where they:
-1. Choose their preferred MFS channel (bKash / Nagad / Rocket / Upay)
+The customer will land on SkyPay's secure hosted page where they:
+1. Choose their MFS channel (bKash / Nagad / Rocket / Upay / Binance)
 2. Copy the merchant number shown on screen
-3. Open their MFS app and send the exact amount
-4. Receive an SMS with a Transaction ID (TrxID)
-5. Enter that TrxID on the SkyPay page and click Verify
-6. SkyPay automatically matches the TrxID against incoming SMS (5–20 seconds)
-7. On successful match, customer is redirected to your `success_url`
+3. Send the exact amount from their MFS app
+4. Enter the TrxID (or Binance Order ID) on SkyPay's page and click Verify
+5. SkyPay matches the TrxID against incoming SMS (5–20 seconds)
+6. On successful match → customer is redirected to your `success_url`
 
 ---
 
-## Step 3 — Handle the Callback (Customer Return URL)
+## Step 3 — Handle the Callback (Return URL)
 
-After the payment is completed (or cancelled), SkyPay redirects the customer back to your `success_url` or `cancel_url` with result details appended as **URL query parameters**.
+After payment is completed or cancelled, SkyPay redirects the customer back to your `success_url` or `cancel_url` with result details as URL query parameters.
 
-### Example Callback URLs
+### Example Redirect — Successful Payment
 
-**Successful Payment:**
 ```
-https://mystore.com/payment/success?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
+https://mystore.com/payment/success?paymentMethod=bkash&transactionId=TRXXXXXXXXX&paymentAmount=500&paymentFee=0&status=completed
 ```
 
-**Failed / Cancelled Payment (no payment made):**
+### Example Redirect — Cancelled / Failed Payment
+
 ```
-https://mystore.com/payment/cancel?transactionId=KUCSPL777353&paymentMethod=undetected&paymentAmount=500.00&paymentFee=0.00&status=failed
+https://mystore.com/payment/cancel?paymentMethod=undetected&transactionId=TRXXXXXXXXX&paymentAmount=500&paymentFee=0&status=failed
 ```
 
 ### Callback Query Parameters
 
-| Parameter | Type | Example | Description |
-|---|---|---|---|
-| `transactionId` | String | `BLA38KDK2M` | The gateway-assigned transaction identifier. Always present regardless of payment outcome. Use this value to call the `/verify` endpoint |
-| `paymentMethod` | String | `bkash` | The MFS channel used: `bkash`, `nagad`, `rocket`, `upay`. Returns `undetected` if the customer did not complete payment |
-| `paymentAmount` | Numeric | `500.00` | The payment amount in BDT as submitted during `/create` |
-| `paymentFee` | Numeric | `0.00` | Gateway fee applied to the transaction. Returns `0` or `0.00` if no fee applies |
-| `status` | String | `completed` | Payment outcome: `completed` (verified and successful) or `failed` (cancelled or not completed) |
+| Parameter | Type | Description |
+|---|---|---|
+| `transactionId` | String | The gateway-assigned transaction ID. **Always present** regardless of outcome. Use this to call `/verify`. |
+| `paymentMethod` | String | Channel used: `bkash`, `nagad`, `rocket`, `upay`, `binance`. Returns `undetected` if customer did not complete payment. |
+| `paymentAmount` | Numeric | The BDT amount set during session creation. |
+| `paymentFee` | Numeric | Gateway fee. Returns `0` if no fee applies. |
+| `status` | String | `completed` = payment verified. `failed` = cancelled or not completed. |
 
 ### `status` Values
 
-| Value | Meaning | Action Required |
+| Value | Meaning | Action |
 |---|---|---|
-| `completed` | Customer successfully sent payment and SkyPay verified it via SMS sync | Proceed to backend verification via `/api/payment/verify` before fulfilling the order |
-| `failed` | Customer cancelled, did not pay, or payment could not be verified | Redirect customer to an error/retry page. Do not fulfill the order |
+| `completed` | Customer paid and SkyPay verified via SMS sync | Proceed to Step 4 (verify via API) before fulfilling |
+| `failed` | Customer cancelled or did not complete payment | Do not fulfill; redirect to error/retry page |
 
-### How to Read Callback Parameters
+> ⚠️ **CRITICAL:** Never fulfill an order based on callback URL parameters alone. The `status=completed` in the URL can be manually crafted by anyone. **Always verify via `POST /api/payment/verify` from your backend (Step 4) before fulfilling any order.**
+
+### Reading Callback Parameters
 
 **PHP**
 ```php
-$transactionId = $_GET['transactionId']  ?? null;
-$paymentMethod = $_GET['paymentMethod']  ?? null;
-$paymentAmount = $_GET['paymentAmount']  ?? null;
-$status        = $_GET['status']         ?? null;
+$transactionId = $_GET['transactionId'] ?? null;
+$status        = $_GET['status']        ?? null;
 
 if ($status === 'completed' && $transactionId) {
-    // ⚠️ Do NOT fulfill the order yet!
-    // Always verify via API first (Step 4)
+    // Do NOT fulfill here — verify first (Step 4)
     verifyPayment($transactionId);
 }
 ```
@@ -466,7 +396,6 @@ public function success(Request $request)
     $status        = $request->query('status');
 
     if ($status === 'completed' && $transactionId) {
-        // ⚠️ Always verify via API — never trust callback params alone
         $this->verifyPayment($transactionId);
     }
 }
@@ -475,139 +404,54 @@ public function success(Request $request)
 **Node.js / Express**
 ```javascript
 app.get('/payment/success', async (req, res) => {
-    const { transactionId, status, paymentMethod, paymentAmount } = req.query;
-
+    const { transactionId, status } = req.query;
     if (status === 'completed' && transactionId) {
-        // ⚠️ Verify first, then fulfill
         await verifyPayment(transactionId);
     }
 });
 ```
 
-> ## 🚨 CRITICAL SECURITY WARNING — READ THIS
->
-> **NEVER fulfill an order or credit a user's account based solely on the callback URL parameters.**
->
-> URL query parameters (`?transactionId=...&status=completed`) are visible in the browser address bar and can be **manually crafted or tampered with** by malicious users. An attacker can simply type `?transactionId=FAKE123&status=completed` in their browser to trigger your success handler if you don't verify.
->
-> **The only safe way to confirm a payment is to call `/api/payment/verify` from your backend server (Step 4) and check that the response returns `"status": "COMPLETED"` from SkyPay's database.**
-
 ---
 
-## Step 4 — Verify the Payment (Backend API Call)
+## Step 4 — Verify the Payment (Mandatory)
 
 > ### ⚠️ THIS STEP IS MANDATORY — SKIPPING IT IS A CRITICAL SECURITY VULNERABILITY
 
-After receiving the callback, your backend must **immediately call** the verify endpoint to confirm that the transaction is genuinely completed in SkyPay's database.
+After receiving the callback, your backend must call the verify endpoint to confirm the transaction is genuinely completed in SkyPay's database.
 
-### Endpoint
-
-```
-POST https://core.skypaybd.top/api/payment/verify
-```
+**`POST https://core.skypaybd.top/api/payment/verify`**
 
 ### Request Headers
 
-```
+```http
 BRAND-KEY: your_brand_key_here
 Content-Type: application/json
 ```
 
-### Request Body Parameters
+### Request Parameters
 
-| Parameter | Type | Required | Description |
+| Parameter | Type | Status | Description |
 |---|---|---|---|
-| `transaction_id` | String | ✅ Required | The `transactionId` received from the callback URL query parameter. Supported aliases: `transactionId`, `transactionid`, `trx_id`, `trx`, `transaction` |
+| `transaction_id` | String | **Required** | The `transactionId` from the callback URL query parameter. Aliases: `transactionId`, `transactionid`, `trx_id`, `trx`, `transaction`. |
 
 ### Example Request Body
 
 ```json
 {
-  "transaction_id": "BLA38KDK2M"
+  "transaction_id": "TRXXXXXXXXX"
 }
 ```
 
-### Example Request (cURL)
-
-```bash
-curl -X POST https://core.skypaybd.top/api/payment/verify \
-  -H "BRAND-KEY: your_brand_key_here" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "transaction_id": "BLA38KDK2M"
-  }'
-```
-
-### Example Request (Python)
-
-```python
-import requests
-
-url = "https://core.skypaybd.top/api/payment/verify"
-
-headers = {
-    "BRAND-KEY": "your_brand_key_here",
-    "Content-Type": "application/json"
-}
-
-payload = {
-    "transaction_id": "BLA38KDK2M"
-}
-
-response = requests.post(url, headers=headers, json=payload)
-data = response.json()
-
-if data.get("status") == True and data.get("data", {}).get("status") == "COMPLETED":
-    info = data["data"]
-    print("Payment verified!")
-    print("Customer:", info.get("cus_name"))
-    print("Amount:", info.get("amount"))
-    print("Method:", info.get("payment_method"))
-    print("Order ID from meta_data:", info.get("meta_data", {}).get("order_id"))
-else:
-    print("Payment not confirmed.")
-```
-
-### Example Request (PHP)
-
-```php
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, 'https://core.skypaybd.top/api/payment/verify');
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'BRAND-KEY: ' . getenv('SKYPAY_BRAND_KEY'),
-    'Content-Type: application/json',
-]);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    'transaction_id' => $_GET['transactionId'],
-]));
-
-$response = curl_exec($ch);
-curl_close($ch);
-
-$data = json_decode($response, true);
-
-if ($data['status'] === true && $data['data']['status'] === 'COMPLETED') {
-    // ✅ Safe to fulfill the order
-    $orderId = $data['data']['meta_data']['order_id'] ?? null;
-    fulfillOrder($orderId, $data['data']['amount']);
-} else {
-    // ❌ Do NOT fulfill
-    showError("Payment could not be verified.");
-}
-```
-
-### Success Response (HTTP 200)
+### Success Response — Payment Completed (HTTP 200)
 
 ```json
 {
   "status": true,
   "data": {
-    "cus_name": "Siyam Ahmed",
-    "cus_email": "siyam@example.com",
-    "amount": 500.00,
-    "transaction_id": "BLA38KDK2M",
+    "cus_name": "John Doe",
+    "cus_email": "john@example.com",
+    "amount": "500.000",
+    "transaction_id": "TRXXXXXXXXX",
     "meta_data": {
       "order_id": "ORD-10928",
       "user_id": "USR-4821",
@@ -619,184 +463,331 @@ if ($data['status'] === true && $data['data']['status'] === 'COMPLETED') {
 }
 ```
 
-### Success Response Fields Explained
+### Success Response — Payment Failed (HTTP 200)
+
+```json
+{
+  "status": true,
+  "data": {
+    "cus_name": "John Doe",
+    "cus_email": "john@example.com",
+    "amount": "500.000",
+    "transaction_id": "TRXXXXXXXXX",
+    "meta_data": {
+      "order_id": "ORD-10928",
+      "user_id": "USR-4821"
+    },
+    "payment_method": null,
+    "status": "FAILED"
+  }
+}
+```
+
+### Response Fields
 
 | Field | Type | Description |
 |---|---|---|
-| `status` | Boolean | Top-level `true` = request was processed successfully |
-| `data` | Object | Contains all verified transaction details |
-| `data.status` | String | `"COMPLETED"` = payment fully verified and confirmed. Other values: `"PENDING"`, `"FAILED"` |
+| `status` | Boolean | Top-level `true` = request processed. Check `data.status` for actual payment result. |
+| `data.status` | String | Actual payment status: `COMPLETED`, `PENDING`, or `FAILED` |
 | `data.cus_name` | String | Customer name as provided during `/create` |
 | `data.cus_email` | String | Customer email as provided during `/create` |
-| `data.amount` | Numeric | Exact amount confirmed and paid in BDT |
-| `data.transaction_id` | String | The verified SMS Transaction ID |
-| `data.payment_method` | String | Channel used: `bkash`, `nagad`, `rocket`, or `upay` |
-| `data.meta_data` | Object | The exact `meta_data` object passed during `/create` — use this to identify which order to fulfill |
+| `data.amount` | String | Exact amount in BDT (returned as string with 3 decimal places) |
+| `data.transaction_id` | String | The verified transaction ID |
+| `data.payment_method` | String | Channel used: `bkash`, `nagad`, `rocket`, `upay`, `binance`. Returns `null` if payment was not completed. |
+| `data.meta_data` | Object | The exact `meta_data` object passed during `/create` |
 
 ### `data.status` Values
 
-| Value | Meaning | Action Required |
+| Value | Internal Code | Meaning | Action |
+|---|:---:|---|---|
+| `COMPLETED` | `2` | Payment confirmed via SMS sync | ✅ Safely fulfill the order |
+| `PENDING` | `1` | Payment submitted but SMS not yet matched | ⏳ Retry after 10–15 seconds |
+| `FAILED` | `0` or other | Not paid, cancelled, or session just initialized | ❌ Do not fulfill |
+
+> **Important:** `FAILED` is returned for any internal status that is not `1` (PENDING) or `2` (COMPLETED). A newly created session that was never paid will also return `FAILED`.
+>
+> **Always check BOTH:** top-level `status === true` AND `data.status === "COMPLETED"` before fulfilling.
+
+### Verify Error Responses
+
+| HTTP Code | Message | Cause |
 |---|---|---|
-| `COMPLETED` | Payment matched against merchant device SMS and confirmed | Safely fulfill the order — deliver goods, credit balance, or activate membership |
-| `PENDING` | Payment initialized but SMS not yet matched | Do not fulfill yet; retry after 10–15 seconds |
-| `FAILED` | Transaction failed, expired, or invalid | Payment not successful — inform customer to re-attempt |
-
-> **Pro Tip:** Use `meta_data` to pass your internal order ID or user ID during `/create`. It will be returned inside `data.meta_data` in the verify response, so you can instantly know which order to activate without any extra database lookup.
-
-### Error Responses
-
-| HTTP Code | Response | Cause | Action |
-|---|---|---|---|
-| `400` | `{"status": false, "message": "Invalid transaction ID or transaction already used."}` | TrxID does not exist in SkyPay's records or was already claimed | Do not fulfill; may be fake or duplicate |
-| `400` | `{"status": false, "message": "This payment session has already been completed."}` | TrxID already used to verify a previous order | Idempotency protection — do not fulfill again |
-| `401` | `{"status": false, "message": "Invalid or inactive BRAND-KEY provided."}` | Wrong BRAND-KEY | Check your Dashboard |
-| `403` | (Device not connected) | Merchant Android phone is offline | Check your SkyPay APK phone |
+| `422` | `Transaction identifier is required. Provide transaction_id, transactionId, or trx_id.` | Missing transaction ID field |
+| `404` | `No transaction record found with the provided transaction identifier.` | Transaction ID not found in database |
+| `401` | `API key is missing. Please provide API-KEY, BRAND-KEY or SECRET-KEY in headers or api_key parameter.` | No auth header provided |
+| `403` | `Invalid or inactive API credentials provided.` | Wrong or inactive BRAND-KEY |
 
 ---
 
 ## Step 5 — Fulfill the Order
 
-Once `/api/payment/verify` returns `"status": true` at the top level **and** `"data.status": "COMPLETED"`, your platform can safely fulfill the order.
+Once verify returns `status: true` at the top level **AND** `data.status: "COMPLETED"`, safely fulfill the order.
 
-**Examples of fulfillment actions:**
-- Add the verified `amount` to the user's wallet or credit balance in your database
+**Examples:**
+- Add verified `amount` to the user's wallet or credit balance
 - Activate or extend the user's subscription plan
 - Mark the invoice as Paid in your billing system
-- Trigger server/hosting provisioning (for WHMCS/cPanel integrations)
-- Unlock premium content, features, or digital goods
-- Send a payment confirmation email or Telegram message to the customer
+- Trigger server/hosting provisioning (WHMCS/cPanel)
+- Unlock premium content or digital goods
+- Send a payment confirmation email or Telegram message
 
-**Always execute fulfillment on your backend server.** Never grant benefits based on frontend data alone.
-
----
-
-## SMS Synchronization Latency
-
-When a customer pays via bKash, Nagad, Rocket, or Upay on SkyPay's hosted page and submits their TrxID, SkyPay internally verifies it against incoming SMS on your merchant Android phone. This process takes **5 to 20 seconds**.
-
-This is handled entirely on SkyPay's hosted page — the customer sees a "Verifying your payment..." indicator while this happens. Your `/api/payment/verify` call only happens **after** SkyPay has already completed this match and redirected the customer back to your `success_url`. So by the time you call `/verify`, the transaction should already be fully recorded.
-
-However, in rare edge cases (network delays, slow SMS delivery), the transaction may still show `"PENDING"` status. In that case:
-
-- Retry the `/verify` call after 10–15 seconds
-- Allow a maximum grace period of 2–3 minutes
-- If still not confirmed after 3 minutes, mark the order as pending and follow up manually or via support
+**Always execute fulfillment on your backend server. Never grant benefits based on frontend data.**
 
 ---
 
-## Security Rules
+## 💻 Code Examples
 
-| Rule | Description |
-|---|---|
-| **Never trust callback URL params** | The `?transactionId=...&status=completed` in your `success_url` is for reference only. Always verify via `/api/payment/verify` before fulfilling |
-| **Server-side only** | All API calls (`/create` and `/verify`) must come from your backend server, never from client-side JavaScript or frontend code |
-| **Protect your BRAND-KEY** | Store it in `.env` files or environment variables. Never hardcode it in source code or commit it to version control |
-| **Idempotency** | Once a TrxID is verified, it is marked as claimed. Implement your own database check to prevent fulfilling the same order twice |
-| **Check both `status` fields** | Check that top-level `status === true` AND `data.status === "COMPLETED"` — a `"PENDING"` or `"FAILED"` value means do NOT fulfill |
+### PHP (cURL) — Create
+
+```php
+$ch = curl_init();
+curl_setopt_array($ch, [
+    CURLOPT_URL            => 'https://core.skypaybd.top/api/payment/create',
+    CURLOPT_POST           => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => [
+        'BRAND-KEY: ' . getenv('SKYPAY_BRAND_KEY'),
+        'Content-Type: application/json',
+    ],
+    CURLOPT_POSTFIELDS => json_encode([
+        'amount'      => 500,
+        'success_url' => 'https://mystore.com/payment/success',
+        'cancel_url'  => 'https://mystore.com/payment/cancel',
+        'cus_name'    => 'John Doe',
+        'cus_email'   => 'john@example.com',
+        'meta_data'   => ['order_id' => 'ORD-10928'],
+    ]),
+]);
+$response = curl_exec($ch);
+curl_close($ch);
+$data = json_decode($response, true);
+
+if ($data['status']) {
+    header("Location: " . $data['payment_url']);
+    exit;
+}
+```
+
+### PHP (cURL) — Verify
+
+```php
+$ch = curl_init();
+curl_setopt_array($ch, [
+    CURLOPT_URL            => 'https://core.skypaybd.top/api/payment/verify',
+    CURLOPT_POST           => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => [
+        'BRAND-KEY: ' . getenv('SKYPAY_BRAND_KEY'),
+        'Content-Type: application/json',
+    ],
+    CURLOPT_POSTFIELDS => json_encode([
+        'transaction_id' => $_GET['transactionId'],
+    ]),
+]);
+$response = curl_exec($ch);
+curl_close($ch);
+$data = json_decode($response, true);
+
+if ($data['status'] === true && $data['data']['status'] === 'COMPLETED') {
+    $orderId = $data['data']['meta_data']['order_id'] ?? null;
+    fulfillOrder($orderId, $data['data']['amount']);
+} else {
+    showError("Payment could not be verified.");
+}
+```
+
+### Laravel — Create
+
+```php
+$response = Http::withHeaders([
+    'BRAND-KEY'    => env('SKYPAY_BRAND_KEY'),
+    'Content-Type' => 'application/json',
+])->post('https://core.skypaybd.top/api/payment/create', [
+    'amount'      => $order->total,
+    'success_url' => route('payment.success'),
+    'cancel_url'  => route('payment.cancel'),
+    'cus_name'    => $user->name,
+    'cus_email'   => $user->email,
+    'meta_data'   => ['order_id' => $order->id],
+]);
+
+$data = $response->json();
+if ($data['status']) {
+    return redirect($data['payment_url']);
+}
+```
+
+### Python — Create & Verify
+
+```python
+import requests
+
+BRAND_KEY = "your_brand_key_here"
+HEADERS   = {"BRAND-KEY": BRAND_KEY, "Content-Type": "application/json"}
+
+# Step 1 — Create
+res = requests.post(
+    "https://core.skypaybd.top/api/payment/create",
+    headers=HEADERS,
+    json={
+        "amount":      500,
+        "success_url": "https://mystore.com/payment/success",
+        "cancel_url":  "https://mystore.com/payment/cancel",
+        "meta_data":   {"order_id": "ORD-10928"},
+    }
+)
+data = res.json()
+if data.get("status"):
+    print("Redirect to:", data["payment_url"])
+
+# Step 4 — Verify
+res = requests.post(
+    "https://core.skypaybd.top/api/payment/verify",
+    headers=HEADERS,
+    json={"transaction_id": "TRXXXXXXXXX"}
+)
+data = res.json()
+if data.get("status") and data["data"]["status"] == "COMPLETED":
+    print("Verified! Order:", data["data"]["meta_data"].get("order_id"))
+```
+
+### Node.js — Verify
+
+```javascript
+const axios = require('axios');
+
+const headers = {
+    'BRAND-KEY':    process.env.SKYPAY_BRAND_KEY,
+    'Content-Type': 'application/json'
+};
+
+const { data } = await axios.post(
+    'https://core.skypaybd.top/api/payment/verify',
+    { transaction_id: req.query.transactionId },
+    { headers }
+);
+
+if (data.status === true && data.data.status === 'COMPLETED') {
+    const orderId = data.data.meta_data?.order_id;
+    await fulfillOrder(orderId, data.data.amount);
+}
+```
 
 ---
 
-## HTTP Status Code Reference
+## 🚦 HTTP Status Code Reference
 
 | HTTP Code | Meaning | What To Do |
 |---|---|---|
-| `200 OK` | Request processed successfully | Check `status` and `data.status` values in the response body |
-| `400 Bad Request` | Missing parameter or invalid data | Read the `message` field for details |
-| `401 Unauthorized` | Missing or invalid BRAND-KEY | Verify your key in the Dashboard |
-| `403 Forbidden` | No active Android device connected | Check that your SkyPay APK phone is online |
-| `404 Not Found` | Endpoint not found | Ensure you are using the correct URL and HTTP method |
-| `405 Method Not Allowed` | Wrong HTTP method (e.g. GET instead of POST) | Use POST for all endpoints |
-| `422 Unprocessable Entity` | Validation error on a specific field | Check URL format, amount range, or `meta_data` JSON structure |
-| `500 Internal Server Error` | Temporary cloud-side error | Wait briefly and retry, or contact SkyPay support |
+| `200` | Request processed | Check `status` and `data.status` in the response body |
+| `400` | Bad request / invalid endpoint | Read the `message` field |
+| `401` | Missing or invalid auth key | Check your BRAND-KEY |
+| `403` | Invalid credentials or inactive account | Verify key in dashboard |
+| `404` | Transaction not found | Transaction ID does not exist |
+| `405` | Wrong HTTP method | Use `POST` for all endpoints |
+| `422` | Validation error on a field | Check URL format, amount range, or meta_data JSON |
+| `500` | Server-side database error | Retry or contact support |
 
 ---
 
-## Quick Reference Summary
+## 🔒 Security Rules
 
-```
-BASE URL           : https://core.skypaybd.top
-AUTH HEADER        : BRAND-KEY: <your_key>
-CONTENT TYPE       : Content-Type: application/json
-
-ENDPOINT 1 — Create Hosted Payment URL
-  POST /api/payment/create
-  Required body: {
-    "amount":      500,
-    "success_url": "https://yoursite.com/payment/success",
-    "cancel_url":  "https://yoursite.com/payment/cancel"
-  }
-  Optional body: {
-    "meta_data":   { "order_id": "..." },   ← returned in /verify response
-    "cus_name":    "Siyam Ahmed",
-    "cus_email":   "siyam@example.com",
-    "webhook_url": "https://yoursite.com/api/webhook",
-    "return_type": "GET"                    ← or "POST"
-  }
-  Returns: { "status": true, "message": "...", "payment_url": "https://core.skypaybd.top/checkout/..." }
-  → Redirect the customer's browser to payment_url immediately.
-
-CALLBACK — SkyPay redirects customer to your success_url or cancel_url with:
-  ?transactionId=BLA38KDK2M&paymentMethod=bkash&paymentAmount=500.00&paymentFee=0.00&status=completed
-  status values : completed | failed
-  paymentMethod : bkash | nagad | rocket | upay | undetected (if no payment made)
-
-ENDPOINT 2 — Verify Payment
-  POST /api/payment/verify
-  Body: { "transaction_id": "BLA38KDK2M" }
-  Returns: {
-    "status": true,
-    "data": {
-      "cus_name": "...", "cus_email": "...", "amount": 500.00,
-      "transaction_id": "...", "payment_method": "bkash",
-      "meta_data": { "order_id": "..." },
-      "status": "COMPLETED"
-    }
-  }
-  → Only fulfill the order when data.status === "COMPLETED"
-
-SUPPORTED CHANNELS : bkash | nagad | rocket | upay
-SMS LATENCY        : 5–20 seconds (handled by SkyPay's hosted page)
-IDEMPOTENCY        : each transaction_id can only be verified once
-```
+| Rule | Description |
+|---|---|
+| **Never trust callback URL params** | `?transactionId=...&status=completed` can be faked by anyone. Always verify via `/api/payment/verify` before fulfilling. |
+| **Server-side only** | All API calls (`/create` and `/verify`) must come from your backend server — never from client-side JavaScript. |
+| **Protect your BRAND-KEY** | Store in `.env` or environment variables. Never hardcode in source code or commit to any repository. |
+| **Idempotency** | Once a `transaction_id` is verified as `COMPLETED`, implement your own database check to prevent fulfilling the same order twice. |
+| **Check both status fields** | Check `status === true` (top-level) AND `data.status === "COMPLETED"` before fulfilling. A `PENDING` or `FAILED` value means do NOT fulfill. |
 
 ---
 
-## Integration Checklist
+## ⏱️ SMS Synchronization Latency
+
+When a customer sends money and submits their TrxID on SkyPay's hosted page, SkyPay verifies it against incoming SMS on your merchant Android phone. This takes **5 to 20 seconds** and is handled entirely on SkyPay's hosted page.
+
+By the time SkyPay redirects the customer back to your `success_url`, verification is usually already complete. However, in rare cases (network delays, slow SMS delivery), the transaction may still show `PENDING` when you call `/verify`:
+
+- Retry the `/verify` call after 10–15 seconds
+- Allow a maximum grace period of 2–3 minutes
+- If still `PENDING` after 3 minutes, mark the order as pending and follow up manually or contact support
+
+---
+
+## ✅ Integration Checklist
 
 Before going live, confirm all of the following:
 
-- [ ] BRAND-KEY is stored securely in `.env` or environment variables (not in source code)
-- [ ] Merchant Android phone is powered on, online, and SkyPay APK is running with green status
-- [ ] Battery optimization is disabled for SkyPay APK on the merchant phone
+- [ ] BRAND-KEY stored securely in `.env` — not in source code or frontend
+- [ ] Merchant Android phone is online and SkyPay APK is running
+- [ ] Battery optimization disabled for SkyPay APK on the merchant phone
 - [ ] `success_url` and `cancel_url` are valid, publicly accessible URLs (not `localhost`)
 - [ ] Customer is redirected to `payment_url` immediately after `/create` response
 - [ ] Your `success_url` handler reads `transactionId` from the query parameters
-- [ ] A backend POST to `/api/payment/verify` is executed before any order fulfillment
-- [ ] Order fulfillment only happens when verify response has `"status": true` AND `"data.status": "COMPLETED"`
-- [ ] Your database prevents double-fulfillment if `/verify` is called more than once for the same `transaction_id`
-- [ ] `meta_data` includes your order/user reference so you can identify what to fulfill
+- [ ] Backend `POST /api/payment/verify` is called before any order fulfillment
+- [ ] Order is fulfilled only when `status === true` AND `data.status === "COMPLETED"`
+- [ ] Database check prevents double-fulfillment for the same `transaction_id`
+- [ ] `meta_data` includes your order/user reference so you know what to fulfill
 
 ---
 
-## Official Resources
+## 📦 Pre-Built CMS Modules
 
-| Resource | Link |
+| Module | Platform | Download |
+|---|---|---|
+| WordPress & WooCommerce Plugin | WordPress | [Download .zip](https://skypaybd.top/public/assets/downloads/WP.zip) |
+| WHMCS Billing Module | WHMCS 7.x & 8.x | [Download .zip](https://skypaybd.top/public/assets/downloads/WHMCS.zip) |
+| SMM Panel Auto-Deposit | SmartPanel / SMM Scripts | [Download .zip](https://skypaybd.top/public/assets/downloads/SMM.zip) |
+| Sketchware SWB Project | Sketchware Mobile | [Download .swb](https://skypaybd.top/public/assets/downloads/Apps.swb) |
+| SkyPay Merchant Sync APK | Android | [Download APK](https://skypaybd.top/public/assets/downloads/SkyPay.apk) |
+| Developer Offline Docs | All Platforms | [Download .zip](https://skypaybd.top/public/assets/downloads/dev.zip) |
+
+---
+
+## 📞 Contact & Support
+
+<div align="center">
+
+| Channel | Link |
 |---|---|
-| Official Website | https://skypaybd.top |
-| Interactive Documentation | https://skypaybd.top/docs |
-| API Core Domain | https://core.skypaybd.top |
-| GitHub Documentation Repo | https://github.com/SkyPayBD/Docs |
-| Merchant Sync Android APK | https://skypaybd.top/public/assets/downloads/SkyPay.apk |
-| WordPress WooCommerce Plugin | https://skypaybd.top/public/assets/downloads/WP.zip |
-| WHMCS Gateway Module | https://skypaybd.top/public/assets/downloads/WHMCS.zip |
-| SMM Panel Module | https://skypaybd.top/public/assets/downloads/SMM.zip |
-| Telegram | https://t.me/BD_Prime_Minister |
+| 🌐 **Website** | [skypaybd.top](https://skypaybd.top) |
+| 📧 **Email** | [support@skypaybd.top](mailto:support@skypaybd.top) |
+| 📞 **Phone / Call** | [+880 9696 014968](tel:+8809696014968) |
+| 💬 **WhatsApp** | [+880 1761 844968](https://wa.me/8801761844968) |
+| ✈️ **Telegram** | [@BD_Prime_Minister](https://t.me/BD_Prime_Minister) |
+| 📘 **Facebook** | [facebook.com/hyper.10.squad](https://www.facebook.com/hyper.10.squad) |
+| 🐙 **GitHub** | [github.com/SkyPayBD](https://github.com/SkyPayBD) |
+| 📺 **YouTube** | [youtube.com/@Sky-Pay-BD](https://youtube.com/@Sky-Pay-BD) |
+
+🕐 **Operating Hours:** Saturday – Thursday, 09:00 AM – 10:00 PM (BST)
+
+📍 **Location:** Panchagarh, Rangpur, Dhaka, Bangladesh
+
+</div>
 
 ---
 
-> **Looking for a zero-redirect, in-app payment experience?**
-> For Telegram bots, Discord bots, mobile apps, and custom headless checkouts where you don't want to redirect the user anywhere — see [SkyPay Headless API v2](./SkyPay_Headless_API_v2.md).
+## 🔗 Quick Links
+
+| Resource | URL |
+|---|---|
+| 🔑 Login | [skypaybd.top/sign-in](https://skypaybd.top/sign-in) |
+| 📝 Register | [skypaybd.top/sign-up](https://skypaybd.top/sign-up) |
+| 🔒 Forgot Password | [skypaybd.top/password-reset](https://skypaybd.top/password-reset) |
+| 🏷️ Brand Management | [skypaybd.top/user/brands](https://skypaybd.top/user/brands) |
+| 💳 Wallet Management | [skypaybd.top/user/user-settings/wallets](https://skypaybd.top/user/user-settings/wallets) |
+| 📱 Device Management | [skypaybd.top/user/devices](https://skypaybd.top/user/devices) |
+| 📦 Subscription Plans | [skypaybd.top/user/plans](https://skypaybd.top/user/plans) |
+| 📄 Privacy Policy | [skypaybd.top/legal#privacy-policy](https://skypaybd.top/legal#privacy-policy) |
+| 📋 Terms of Service | [skypaybd.top/legal#terms](https://skypaybd.top/legal#terms) |
+| 💰 Refund Policy | [skypaybd.top/legal#refund-policy](https://skypaybd.top/legal#refund-policy) |
+| 💵 Pricing | [skypaybd.top/#pricing](https://skypaybd.top/#pricing) |
+| ❓ FAQ | [skypaybd.top/#faq](https://skypaybd.top/#faq) |
 
 ---
 
-*SkyPay Technologies Ltd. — Automated MFS Payment Infrastructure for Bangladesh*
+<div align="center">
+
+*© 2024–2026 SkyPay BD. All rights reserved.*
+
+</div>
