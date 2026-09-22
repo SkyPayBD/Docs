@@ -1,18 +1,18 @@
 # SkyPay — Mobile App Integration Guide
-<div align="center">
-<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789095642_d2193dfe3264f3a5ec9c.png" width="100" alt="SkyPay Logo" />
-<br/>
-<img src="https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789098593_de7d9d238ad2e0178762.png" width="420" alt="SkyPay Banner" />
-<br/><br/>
+
+![SkyPay Logo](https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789095642_d2193dfe3264f3a5ec9c.png)
+
+![SkyPay Banner](https://skypaybd.top/public/uploads/admin/356a192b7913b04c54574d18c28d46e6395428ab/1789098593_de7d9d238ad2e0178762.png)
+
 **Headless Payment Integration for Native & Cross-Platform Mobile Apps**
-*Accept automated payments via **bKash**, **Nagad**, **Rocket**, and **Upay** — directly inside your Flutter, Kotlin, Java, or Swift app — without any browser redirect or WebView.*
-<br/>
+
+*Accept automated payments via **bKash**, **Nagad**, **Rocket**, **Upay**, and **Binance Pay** — directly inside your Flutter, Kotlin, Java, or Swift app — without any browser redirect or WebView.*
+
 [![Official Website](https://img.shields.io/badge/Official%20Website-skypaybd.top-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://skypaybd.top)
 [![Online Docs](https://img.shields.io/badge/Online%20Docs-skypaybd.top%2Fdocs-7c3aed?style=for-the-badge&logo=gitbook&logoColor=white)](https://skypaybd.top/docs)
 [![API Core](https://img.shields.io/badge/API%20Core-core.skypaybd.top-0f172a?style=for-the-badge&logo=serverfault&logoColor=white)](https://core.skypaybd.top)
 [![API Version](https://img.shields.io/badge/API%20Version-v2.0%20Headless-16a34a?style=for-the-badge&logo=statuspage&logoColor=white)](https://core.skypaybd.top)
-[![Platforms](https://img.shields.io/badge/Platforms-Flutter%20%7C%20Kotlin%20%7C%20Java%20%7C%20Swift-f97316?style=for-the-badge&logo=android&logoColor=white)](#)
-</div>
+[![Platforms](https://img.shields.io/badge/Platforms-Flutter%20%7C%20Kotlin%20%7C%20Java%20%7C%20Swift-f97316?style=for-the-badge&logo=android&logoColor=white)](https://skypaybd.top)
 
 ---
 
@@ -21,6 +21,7 @@
 ---
 
 ## 📋 Table of Contents
+- [Supported Payment Methods](#-supported-payment-methods)
 - [Why Headless API v2 for Mobile](#-why-headless-api-v2-for-mobile)
 - [API Base URL](#-api-base-url)
 - [Authentication](#-authentication)
@@ -41,6 +42,20 @@
 - [Integration Checklist](#-integration-checklist)
 - [Quick Links](#-quick-links)
 - [Contact & Support](#-contact--support)
+
+---
+
+## 💳 Supported Payment Methods
+
+| Channel | `method` Value | Personal (Send Money) | Agent (Cash In) | Merchant Pay | Verification |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **bKash** | `bkash` | ✅ | ✅ | ✅ | Android SMS Sync |
+| **Nagad** | `nagad` | ✅ | ✅ | 🔄 Under Review | Android SMS Sync |
+| **Rocket** | `rocket` | ✅ | ✅ | 🔄 Under Review | Android SMS Sync |
+| **Upay** | `upay` | ✅ | ❌ | 🔄 Under Review | Android SMS Sync |
+| **Binance Pay** | `binance` | ✅ (USDT) | — | — | Automatic (server-side) |
+
+> **Note:** `binance` verification does **not** use the Android SMS bridge at all. SkyPay verifies Binance payments automatically on the server side — the customer only needs to provide their **Binance Order ID**. This makes Binance the fastest of the five channels and the only one with zero dependency on your merchant Android device.
 
 ---
 
@@ -145,27 +160,33 @@ POST https://core.skypaybd.top/api/v2/payment/create
 
 **Response parsing — critical fields:**
 - `id` (String): The SkyPay session ID. **Save it immediately** in your ViewModel / state object — you will need it in Step 3. If lost, the session cannot be verified and a new one must be created.
-- `methods` (Array): Each element represents a payment channel (`bkash`, `nagad`, `rocket`, `upay`) with:
+- `methods` (Array): Each element represents a payment channel (`bkash`, `nagad`, `rocket`, `upay`, `binance`) with:
   - `name`: channel identifier
   - `active_payments.personal`: boolean — is the personal (Send Money) number active?
   - `active_payments.agent`: boolean — is the agent (Cash In) number active?
   - `active_payments.payment`: boolean — is merchant payment active? (bKash only)
-  - `personal`: wallet number for Send Money
+  - `active_payments.merchant`: boolean — *(Binance only)* merchant mode flag, currently always `false`
+  - `personal`: wallet number for Send Money — for Binance, this is the **Binance Pay receiving ID** instead of a phone number
   - `agent`: wallet number for Cash In
   - `payment`: wallet number for Merchant Pay
+  - `currency` *(Binance only)*: always `"USDT"` — no other currency is accepted
+  - `dollar_rate` *(Binance only)*: the BDT-to-USDT conversion rate set by the merchant
+  - `amount_usdt` *(Binance only)*: the **exact USDT amount** the customer must send, already calculated (= BDT amount ÷ rate, rounded to 4 decimals) — show this value directly to the customer
 
 **Filtering rule:** Only display a wallet option if the corresponding `active_payments` flag is `true` **and** the number string is not empty. Never show the user a channel with an inactive flag or empty number.
 
 ### Step 2 — Display Payment Instructions
 
 Build a native payment screen inside the app that shows:
-- The exact BDT amount the user must send
+- The exact BDT amount the user must send (or the exact `amount_usdt` value for Binance)
 - A list of available wallet options (filtered from Step 1)
-- For each wallet: channel name, type (Personal/Agent), and the number to send to
-- Clear instruction: "Send the exact amount, then enter your TrxID"
-- A text input field for the TrxID
+- For each wallet: channel name, type (Personal/Agent), and the number to send to — for Binance, show the **Binance Receiving ID** and the exact **USDT amount**
+- Clear instruction: "Send the exact amount, then enter your TrxID" (or "Order ID" for Binance)
+- A text input field for the TrxID / Order ID
 - If multiple channels are available, a selector for which one the user paid with (radio buttons or dropdown)
 - A submit/verify button and a cancel option
+
+> For Binance, tell the user verification is near-instant since there is no SMS bridge involved — this is a good moment to set the right expectation in your UI copy.
 
 ### Step 3 — Verify Transaction
 
@@ -184,14 +205,17 @@ POST https://core.skypaybd.top/api/v2/payment/verify
 }
 ```
 
-The `method` field must always be **strict lowercase**: `bkash`, `nagad`, `rocket`, `upay`. Apply the platform's lowercase function before sending.
+The `method` field must always be **strict lowercase**: `bkash`, `nagad`, `rocket`, `upay`, or `binance`. Apply the platform's lowercase function before sending. For Binance, `transaction_id` is the customer's **Binance Order ID** rather than an SMS TrxID (the field name stays the same — `transaction_id` — but also accepts the aliases `order_id`, `order`, `trx_id`, `transactionId`, `transaction`).
 
 **Response handling:**
 - `status: true` → Payment verified. Proceed with in-app fulfillment (unlock content, add balance, activate plan).
 - `status: false` → Check the `message` field:
-  - TrxID not found / SMS not yet received → show a **Retry** button; ask the user to wait 10 seconds. Allow retries for up to 2–3 minutes.
-  - TrxID already used → show a permanent error: "This transaction ID has already been used."
+  - TrxID not found / SMS not yet received *(bKash, Nagad, Rocket, Upay only)* → show a **Retry** button; ask the user to wait 10 seconds. Allow retries for up to 2–3 minutes.
+  - Order ID not found, receiver UID mismatch, wrong currency, or insufficient USDT amount *(Binance only)* → these are near-instant, permanent failures; show the specific error message and ask the user to re-check the payment rather than retrying blindly.
+  - TrxID / Order ID already used → show a permanent error: "This transaction has already been used."
   - Session expired → tell the user to start the payment process again.
+
+> **Binance verification is instant** — there is no 5–20 second SMS matching delay. SkyPay checks the Order ID against Binance's servers directly, so your UI can skip the "please wait" retry copy for this channel and treat a failure as final.
 
 ---
 
@@ -286,6 +310,8 @@ Same architecture as Kotlin but using:
 
 SkyPay's Android SMS bridge takes **5–20 seconds** to receive and relay the customer's payment SMS. If the user submits their TrxID immediately after paying, verification may return `false` because the SMS has not yet arrived.
 
+> This retry logic applies only to **bKash, Nagad, Rocket, and Upay**. Binance Pay verifies instantly on the server side, so a Binance failure should be treated as final rather than retried.
+
 Implement the following retry logic:
 1. After a failed verify call, check whether the error message indicates "not found" or "not yet received"
 2. If yes: show the user "Payment matching in progress, please wait..."
@@ -314,7 +340,7 @@ Always normalize `method` to lowercase before sending it to the verify endpoint:
 - Java: `selectedMethod.toLowerCase(Locale.ROOT)`
 - Swift: `selectedMethod.lowercased()`
 
-Accepted values: `bkash`, `nagad`, `rocket`, `upay` — all lowercase, no spaces.
+Accepted values: `bkash`, `nagad`, `rocket`, `upay`, `binance` — all lowercase, no spaces.
 
 ---
 
@@ -326,15 +352,15 @@ User taps "Pay 500 BDT"
     → Save sessionId, parse and filter methods
 
 App shows wallet numbers to user
-    → User opens bKash/Nagad/etc app
-    → User sends money to displayed number
-    → User copies TrxID from SMS notification
+    → User opens bKash/Nagad/Rocket/Upay app, or Binance app for USDT
+    → User sends money (exact BDT, or exact amount_usdt for Binance)
+    → User copies TrxID from SMS (MFS) or Order ID from Binance app
 
-User enters TrxID in app and taps "Verify"
+User enters TrxID/Order ID in app and taps "Verify"
     → POST /api/v2/payment/verify { id, method, transaction_id }
     → status: true  → fulfill order inside app
-    → status: false (pending)   → show retry button, wait 10s
-    → status: false (permanent) → show error
+    → status: false (pending, MFS only)   → show retry button, wait 10s
+    → status: false (permanent, or any Binance failure) → show error
 ```
 
 ---
@@ -345,10 +371,16 @@ User enters TrxID in app and taps "Verify"
 | :--- | :--- | :--- | :--- |
 | `400` | `Invalid transaction ID or transaction already used.` | TrxID not found in incoming SMS logs, or already claimed by another order. | Ask the user to double-check the TrxID; for a fresh payment, wait 10–20s and retry. |
 | `400` | `This payment session has already been completed.` | The session was already verified earlier. | Do not re-verify — check your own DB for order status. |
-| `400` | `Unsupported payment method supplied.` | `method` is not `bkash`, `nagad`, `rocket`, or `upay`, or is not lowercase. | Normalize with the platform's lowercase function before sending. |
+| `400` | `Unsupported payment method supplied.` | `method` is not `bkash`, `nagad`, `rocket`, `upay`, or `binance`, or is not lowercase. | Normalize with the platform's lowercase function before sending. |
+| `400` | `Transaction not found. Please check Order ID.` *(Binance)* | The Order ID does not match any Binance Pay transaction. | Ask the user to double-check the Order ID copied from the Binance app. |
+| `400` | `Receiver UID does not match.` *(Binance)* | The customer sent USDT to the wrong Binance UID. | Check the merchant's Binance UID configuration in the Dashboard. |
+| `400` | `Only USDT payments are accepted.` *(Binance)* | The customer sent a currency other than USDT. | Instruct the customer to send USDT only. |
+| `400` | `Insufficient amount received. Expected X USDT but received Y USDT.` *(Binance)* | The customer sent less than the required `amount_usdt` (outside ±0.0005 tolerance). | Ask the customer to send the exact `amount_usdt` value shown in the app. |
+| `400` | `This Order ID has already been used.` *(Binance)* | The Order ID was already committed to a previous session. | Do not accept duplicate Order IDs. |
 | `401` | `Invalid or inactive BRAND-KEY provided.` | The key is wrong, or the brand is deactivated. | Verify the key on your backend / Brand Management dashboard. |
-| `403` | `No active SMS sync device found for this account.` | The merchant Android phone is offline or the SkyPay APK service is stopped. | Restart the SkyPay APK and confirm the phone is online. |
+| `403` | `No active SMS sync device found for this account.` | The merchant Android phone is offline or the SkyPay APK service is stopped. *(Does not apply to Binance.)* | Restart the SkyPay APK and confirm the phone is online. |
 | `404` | `Payment session not found or expired.` | The session `id` is invalid or expired. | Call `/create` again for a fresh session. |
+| `502` | `Failed to communicate with Binance. Please try again.` *(Binance)* | Binance's service is temporarily unreachable. | Retry after a short delay; contact SkyPay support if it persists. |
 
 ---
 
@@ -358,8 +390,9 @@ User enters TrxID in app and taps "Verify"
 - [ ] The app talks to your backend, and your backend talks to SkyPay
 - [ ] Session `id` is saved immediately after `/create` and passed through to `/verify`
 - [ ] Only channels with `active_payments = true` and a non-empty number are shown
-- [ ] `method` is always normalized to strict lowercase before verification
-- [ ] A 10–20 second retry window is implemented for SMS sync latency
+- [ ] `method` is always normalized to strict lowercase before verification (including `binance`)
+- [ ] A 10–20 second retry window is implemented for SMS sync latency (bKash / Nagad / Rocket / Upay only)
+- [ ] For Binance: the exact `amount_usdt` and Binance Receiving ID from `/create` are shown to the customer, and a Binance failure is treated as final (no blind retry)
 - [ ] Order fulfillment only happens after receiving `status: true` from `/verify`
 - [ ] Your backend database prevents double-fulfillment on duplicate verify calls
 - [ ] Native UI (not a WebView) is used for the entire payment flow
@@ -383,7 +416,6 @@ User enters TrxID in app and taps "Verify"
 ---
 
 ## 📞 Contact & Support
-<div align="center">
 
 | Channel | Link |
 | :--- | :--- |
@@ -398,10 +430,8 @@ User enters TrxID in app and taps "Verify"
 
 🕐 **Operating Hours:** Saturday – Thursday, 09:00 AM – 10:00 PM (BST)
 📍 **Location:** Panchagarh, Rangpur, Dhaka, Bangladesh
-</div>
 
 ---
-<div align="center">
+
 *© 2024–2026 SkyPay BD. All rights reserved.*
 *SkyPay Mobile Integration Guide — Flutter · Kotlin · Java · Swift*
-</div>
