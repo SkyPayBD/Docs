@@ -47,8 +47,6 @@
 | **Rocket** | ✅ | ✅ | 🔄 Under Review |
 | **Upay** | ✅ | ❌ | 🔄 Under Review |
 | **Binance Pay** | ✅ (USDT) | — | — |
-| **Sonali Bank** | 🔄 Coming Soon | — | — |
-| **Islami Bank** | 🔄 Coming Soon | — | — |
 | **PayPal & International** | 🔄 Planned | — | — |
 
 ---
