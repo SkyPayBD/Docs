@@ -66,6 +66,9 @@
   - [Step 3: Verify Transaction](#step-3-verify-transaction)
 - [Comparison: v1 vs v2](#-architecture-comparison-v1-vs-v2)
 - [Android SMS Sync App Setup](#-android-merchant-sync-app-setup)
+- [SMS Gateway API](#-sms-gateway-api)
+  - [Quick Start](#-sms-gateway-quick-start)
+  - [Request & Response](#-sms-gateway-request--response)
 - [Pre-Built CMS Modules](#-pre-built-cms-modules)
 - [HTTP Status Codes & Errors](#-http-status-codes--error-reference)
 - [Security Checklist](#-production-security-checklist)
@@ -126,6 +129,7 @@ The accepted header names differ between v1 and v2:
 | **v1 Hosted** | Verify Payment | `POST` | `https://core.skypaybd.top/api/payment/verify` |
 | **v2 Headless** | Initiate Session | `POST` | `https://core.skypaybd.top/api/v2/payment/create` |
 | **v2 Headless** | Verify Transaction | `POST` | `https://core.skypaybd.top/api/v2/payment/verify` |
+| **SMS Gateway** | Send SMS | `POST` | `https://core.skypaybd.top/api/sms/send` |
 
 ---
 
@@ -663,6 +667,108 @@ The verify endpoint accepts multiple field name aliases for the transaction iden
 
 ---
 
+---
+
+## 📨 SMS Gateway API
+
+SkyPay also provides an **SMS Gateway API** for applications that need to send SMS through a connected Android device and its SIM card. The API accepts a gateway key, destination number, and message, then routes the request through SkyPay's Firebase/FCM bridge to the selected Android device.
+
+### 🔗 Base URL
+
+All SMS Gateway API calls use:
+
+```text
+https://core.skypaybd.top
+```
+
+### 📡 Send SMS
+
+**`POST https://core.skypaybd.top/api/sms/send`**
+
+#### Request Headers
+
+```http
+GATEWAY-KEY: YOUR_18_CHARACTER_GATEWAY_KEY
+Content-Type: application/json
+```
+
+`gateway-key` and `key` are also supported as alternative header names. The server checks them in this order:
+
+```text
+GATEWAY-KEY → gateway-key → key
+```
+
+#### Request Body
+
+```json
+{
+  "number": "01712345678",
+  "message": "Your verification code is 482910."
+}
+```
+
+`number` may also be sent as `phone`, and `message` may also be sent as `text`.
+
+#### Success Response — `200 OK`
+
+```json
+{
+  "status": true,
+  "message": "SMS queued successfully for delivery.",
+  "data": {
+    "number": "01712345678",
+    "text": "Your verification code is 482910.",
+    "device_name": "My Android Phone",
+    "device_ip": "192.168.1.100",
+    "message_id": "0:1234567890abcdef",
+    "timestamp": "2025-01-15 10:30:45"
+  }
+}
+```
+
+> `status` is a boolean. A successful response means the SMS has been queued/dispatched through the FCM bridge; final carrier delivery is performed by the Android device's SIM.
+
+#### Quick PHP Example
+
+```php
+<?php
+
+$curl = curl_init();
+
+$payload = [
+    "number"  => "01712345678",
+    "message" => "Your verification code is 482910."
+];
+
+curl_setopt_array($curl, [
+    CURLOPT_URL            => "https://core.skypaybd.top/api/sms/send",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => json_encode($payload),
+    CURLOPT_HTTPHEADER     => [
+        "GATEWAY-KEY: YOUR_18_CHARACTER_GATEWAY_KEY",
+        "Content-Type: application/json"
+    ],
+]);
+
+$response = curl_exec($curl);
+curl_close($curl);
+
+echo $response;
+```
+
+### 🔄 SMS Gateway Quick Start
+
+1. Activate an eligible plan on the SkyPay website.
+2. Create an Android **Device** and save its Device Key.
+3. Download and log in to the SkyPay Android application using your email and Device Key.
+4. Grant the required permissions and configure the **Gateway** section in the app.
+5. Create an **SMS Gateway** from the website's Gateway settings and select the device that should send the SMS.
+6. After saving the gateway, SkyPay generates a random **18-character alphanumeric Gateway Key**.
+7. Use that Gateway Key from your backend when calling `POST /api/sms/send`.
+
+For the complete device setup, gateway creation, Android configuration, request/response reference, error reference, Firebase/FCM flow, and implementation examples, see [`Gateway/README.md`](Gateway/README.md).
+
 ## 📱 Android Merchant Sync App Setup
 
 SkyPay's real-time MFS payment verification (bKash, Nagad, Rocket, Upay) depends on your **Android Merchant Sync App** reading incoming payment SMS notifications from your SIM card and forwarding them to the SkyPay cloud server.
@@ -810,6 +916,6 @@ A toggle button at the top of the app lets you **pause** or **resume** the sync 
 
 <div align="center">
 
-*© 2024–2026 SkyPay BD. All rights reserved.*
+*© 2025–2026 SkyPay BD. All rights reserved.*
 
 </div>
