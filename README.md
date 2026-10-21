@@ -12,16 +12,6 @@ New to SkyPay? Review the **Authentication & Security** section below before dis
 
 ---
 
-### Guide For LLM Models
-
-For prompt context or autonomous agent integrations, copy the raw markdown documentation link:
-
-```text
-https://skypaybd.top/docs/llm.md
-```
-
----
-
 ## Contents
 
 - [Authentication & Security](#authentication--security)
