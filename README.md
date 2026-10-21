@@ -1649,7 +1649,6 @@ The **Programmatic SMS Gateway API** enables developers and merchant application
 |---|---|---|---|---|
 | `number` | String | **Yes** | `phone` | Destination mobile number (e.g. `01712345678` or `+88017XXXXXXXX`). |
 | `text` | String | **Yes** | `message` | SMS body text. Full Unicode and native Bangla character support. |
-| `id` | String | No | `message_id` | Optional client-side reference ID for tracking message delivery. |
 
 ---
 
@@ -1689,8 +1688,7 @@ curl -X POST "https://core.skypaybd.top/api/v2/gateway/send" \
   -H "Content-Type: application/json" \
   -d '{
     "number": "01712345678",
-    "text": "Your verification code is 482910.",
-    "id": "MSG_90218"
+    "text": "Your verification code is 482910."
   }'
 ```
 
@@ -1711,7 +1709,6 @@ const sendSms = async (phoneNumber, messageText, customId = '') => {
     body: JSON.stringify({
       number: phoneNumber,
       text: messageText,
-      id: customId
     })
   });
 
@@ -1738,8 +1735,7 @@ def send_gateway_sms(phone: str, message: str, msg_id: str = ""):
     }
     payload = {
         "number": phone,
-        "text": message,
-        "id": msg_id
+        "text": message
     }
 
     response = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -1757,8 +1753,7 @@ def send_gateway_sms(phone: str, message: str, msg_id: str = ""):
 
 $payload = [
     "number" => "01712345678",
-    "text"   => "Your verification code is 482910.",
-    "id"     => "MSG_90218"
+    "text"   => "Your verification code is 482910."
 ];
 
 $ch = curl_init('https://core.skypaybd.top/api/v2/gateway/send');
@@ -1798,8 +1793,7 @@ func SendSMS(phone, message, msgID string) ([]byte, error) {
 	url := "https://core.skypaybd.top/api/v2/gateway/send"
 	payload, _ := json.Marshal(map[string]string{
 		"number": phone,
-		"text":   message,
-		"id":     msgID,
+		"text":   message
 	})
 
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
