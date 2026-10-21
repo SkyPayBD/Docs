@@ -12,28 +12,38 @@ New to SkyPay? Review the **Authentication & Security** section below before dis
 
 ---
 
+### Guide For LLM Models
+
+For prompt context or autonomous agent integrations, copy the raw markdown documentation link:
+
+```text
+https://skypaybd.top/docs/llm.md
+```
+
+---
+
 ## Contents
 
-- [Authentication & Security](#authentication-security)
+- [Authentication & Security](#authentication--security)
 - [Payment Creation Hub](#payment-creation-hub)
-  - [Hosted Checkout (v1) — Create Payment](#hosted-checkout-v1-create-payment)
-  - [Headless API (v2) — Initialize Payment Session](#headless-api-v2-initialize-payment-session)
+  - [Hosted Checkout (v1) — Create Payment](#hosted-checkout-v1--create-payment)
+  - [Headless API (v2) — Initialize Payment Session](#headless-api-v2--initialize-payment-session)
 - [Payment Verification Hub](#payment-verification-hub)
-  - [Hosted Checkout (v1) — Verify Payment](#hosted-checkout-v1-verify-payment)
-  - [Headless API (v2) — Multi-Rail Payment Verification](#headless-api-v2-multi-rail-payment-verification)
+  - [Hosted Checkout (v1) — Verify Payment](#hosted-checkout-v1--verify-payment)
+  - [Headless API (v2) — Multi-Rail Payment Verification](#headless-api-v2--multi-rail-payment-verification)
 - [Programmatic SMS Gateway API](#programmatic-sms-gateway-api)
-- [Device Health & Telemetry](#device-health-telemetry)
-- [Webhooks & Instant Payment Notifications (IPN)](#webhooks-instant-payment-notifications-ipn)
-- [Error Code Reference & Troubleshooting](#error-code-reference-troubleshooting)
-- [Changelog & Versioning History](#changelog-versioning-history)
+- [Device Health & Telemetry](#device-health--telemetry)
+- [Webhooks & Instant Payment Notifications (IPN)](#webhooks--instant-payment-notifications-ipn)
+- [Error Code Reference & Troubleshooting](#error-code-reference--troubleshooting)
+- [Changelog & Versioning History](#changelog--versioning-history)
 
 ## Quick Start
 
-1. Review [Authentication & Security](#authentication-security) and configure the appropriate credentials.
-2. For hosted checkout integrations, follow [Hosted Checkout (v1) — Create Payment](#hosted-checkout-v1-create-payment), then [Hosted Checkout (v1) — Verify Payment](#hosted-checkout-v1-verify-payment).
-3. For in-app or bot integrations, follow [Headless API (v2) — Initialize Payment Session](#headless-api-v2-initialize-payment-session), then [Headless API (v2) — Multi-Rail Payment Verification](#headless-api-v2-multi-rail-payment-verification).
-4. Configure [Webhooks & IPN](#webhooks-instant-payment-notifications-ipn) for asynchronous payment notifications.
-5. Use [Programmatic SMS Gateway API](#programmatic-sms-gateway-api) and [Device Health & Telemetry](#device-health-telemetry) for supported device-connected services.
+1. Review [Authentication & Security](#authentication--security) and configure the appropriate credentials.
+2. For hosted checkout integrations, follow [Hosted Checkout (v1) — Create Payment](#hosted-checkout-v1--create-payment), then [Hosted Checkout (v1) — Verify Payment](#hosted-checkout-v1--verify-payment).
+3. For in-app or bot integrations, follow [Headless API (v2) — Initialize Payment Session](#headless-api-v2--initialize-payment-session), then [Headless API (v2) — Multi-Rail Payment Verification](#headless-api-v2--multi-rail-payment-verification).
+4. Configure [Webhooks & IPN](#webhooks--instant-payment-notifications-ipn) for asynchronous payment notifications.
+5. Use [Programmatic SMS Gateway API](#programmatic-sms-gateway-api) and [Device Health & Telemetry](#device-health--telemetry) for supported device-connected services.
 
 ---
 
@@ -44,22 +54,22 @@ Follow an integration route tailored to your platform architecture and customer 
 ### Hosted Checkout (v1)
 Generate secure checkout sessions and redirect customers to a responsive, pre-built payment interface. Supports automated MFS number copy, transaction ID input validation, and redirect webhooks.
 * **Best for:** E-commerce stores, SaaS platforms, and quick plug-and-play integrations.
-* **Reference:** [Read Hosted Checkout Guide →](#hosted-checkout-v1-create-payment)
+* **Reference:** [Read Hosted Checkout Guide →](#hosted-checkout-v1--create-payment)
 
 ### Headless In-App API (v2)
 Build native, fully white-labeled payment flows inside your mobile applications, single-page web portals, and Telegram bots without browser redirection.
 * **Best for:** Custom checkout UX, mobile apps (Flutter, React Native), and conversational bots.
-* **Reference:** [Read Headless API Guide →](#headless-api-v2-initialize-payment-session)
+* **Reference:** [Read Headless API Guide →](#headless-api-v2--initialize-payment-session)
 
 ### Multi-Rail Verification
 Verify incoming transactions across multiple rails including MFS SMS proofs, Bangla QR push feeds, BEP20 EVM smart contract transfers, and Binance Pay orders.
 * **Best for:** High-volume transaction reconciliation and automated order fulfillment.
-* **Reference:** [Read Verification Hub Guide →](#headless-api-v2-multi-rail-payment-verification)
+* **Reference:** [Read Verification Hub Guide →](#headless-api-v2--multi-rail-payment-verification)
 
 ### Automated Webhooks (IPN)
 Receive instant, cryptographically signed HTTP POST notifications to your backend whenever a transaction status changes. Includes HMAC-SHA256 signature verification and idempotency keys.
 * **Best for:** Reliable asynchronous event handling and ledger synchronization.
-* **Reference:** [Read Webhook Implementation →](#webhooks-instant-payment-notifications-ipn)
+* **Reference:** [Read Webhook Implementation →](#webhooks--instant-payment-notifications-ipn)
 
 ### Programmatic SMS Gateway
 Dispatch OTPs, transactional alerts, and customer notifications via your own connected Android relay hardware without paying SMS aggregator fees.
@@ -69,7 +79,7 @@ Dispatch OTPs, transactional alerts, and customer notifications via your own con
 ### Device Health & Telemetry
 Monitor the hardware state of connected Android relay nodes, keepalive pings, battery vitals, and SIM network strength in real time.
 * **Best for:** DevOps monitoring, uptime tracking, and fault detection.
-* **Reference:** [Read Device Telemetry Guide →](#device-health-telemetry)
+* **Reference:** [Read Device Telemetry Guide →](#device-health--telemetry)
 
 ---
 
@@ -421,7 +431,7 @@ Hosted checkout allows you to initialize a session and redirect customers to a r
 
 > **Want full request schemas, redirect parameter lists, and complete code samples?**
 >
-> 👉 **[Read the Complete Hosted Checkout (v1) Guide](#hosted-checkout-v1-create-payment)**
+> 👉 **[Read the Complete Hosted Checkout (v1) Guide](#hosted-checkout-v1--create-payment)**
 
 ---
 
@@ -441,7 +451,7 @@ The Headless API enables merchant applications to build custom payment UI screen
 
 > **Want full JSON payloads, multi-rail response objects, and bot implementation guides?**
 >
-> 👉 **[Read the Complete Headless API (v2) Guide](#headless-api-v2-initialize-payment-session)**
+> 👉 **[Read the Complete Headless API (v2) Guide](#headless-api-v2--initialize-payment-session)**
 
 ---
 
@@ -449,8 +459,8 @@ The Headless API enables merchant applications to build custom payment UI screen
 
 Explore the detailed implementation guides for each version:
 
-* [Hosted Checkout (v1) Create Guide](#hosted-checkout-v1-create-payment)
-* [Headless API (v2) Create Guide](#headless-api-v2-initialize-payment-session)
+* [Hosted Checkout (v1) Create Guide](#hosted-checkout-v1--create-payment)
+* [Headless API (v2) Create Guide](#headless-api-v2--initialize-payment-session)
 * [Payment Verification Hub →](#payment-verification-hub)
 
 ---
@@ -740,7 +750,7 @@ GET https://merchant.com/payment/cancel?paymentMethod=bkash&transactionId=TRX_IN
 
 ---
 
-[← Back to Creation Hub](#payment-creation-hub) · [Proceed to Hosted Verify (v1) →](#hosted-checkout-v1-verify-payment)
+[← Back to Creation Hub](#payment-creation-hub) · [Proceed to Hosted Verify (v1) →](#hosted-checkout-v1--verify-payment)
 
 ---
 
@@ -1031,7 +1041,7 @@ Use `/api/payment/verify` from your backend server to double-check transaction s
 
 > **Want full request schemas, response formats, and status mapping tables?**
 >
-> 👉 **[Read the Complete Hosted Verification (v1) Guide](#hosted-checkout-v1-verify-payment)**
+> 👉 **[Read the Complete Hosted Verification (v1) Guide](#hosted-checkout-v1--verify-payment)**
 
 ---
 
@@ -1046,15 +1056,15 @@ The Headless verification endpoint validates client-submitted transaction proofs
 
 > **Want rail-by-rail verification mechanics, smart contract topics, and polling strategies?**
 >
-> 👉 **[Read the Complete Headless Verification (v2) Guide](#headless-api-v2-multi-rail-payment-verification)**
+> 👉 **[Read the Complete Headless Verification (v2) Guide](#headless-api-v2--multi-rail-payment-verification)**
 
 ---
 
 ## Navigation & Next Steps
 
-* [Hosted Checkout (v1) Verify Guide](#hosted-checkout-v1-verify-payment)
-* [Headless API (v2) Verify Guide](#headless-api-v2-multi-rail-payment-verification)
-* [Webhooks & IPN Notifications →](#webhooks-instant-payment-notifications-ipn)
+* [Hosted Checkout (v1) Verify Guide](#hosted-checkout-v1--verify-payment)
+* [Headless API (v2) Verify Guide](#headless-api-v2--multi-rail-payment-verification)
+* [Webhooks & IPN Notifications →](#webhooks--instant-payment-notifications-ipn)
 
 ---
 
