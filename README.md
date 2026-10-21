@@ -122,7 +122,7 @@ Merchant identity is validated via your unique **Brand Key** (generated in the S
 | `api_key` | Query / Body | String | Fallback Alias | Allowed in query string or JSON payload (not recommended for production). |
 
 > **Evaluation Priority**:
-> SkyPay checks for `BRAND-KEY` first, followed by `Authorization: Bearer`, `API-KEY`, `SECRET-KEY`, and finally `api_key` in the request body. Only one valid authentication credential is required per request.
+> SkyPay checks for `BRAND-KEY` first, followed by `API-KEY`, `SECRET-KEY`, and finally `api_key` in the request body. Only one valid authentication credential is required per request.
 
 ### SMS Gateway Authentication
 
@@ -1688,7 +1688,8 @@ curl -X POST "https://core.skypaybd.top/api/v2/gateway/send" \
   -H "Content-Type: application/json" \
   -d '{
     "number": "01712345678",
-    "text": "Your verification code is 482910."
+    "text": "Your verification code is 482910.",
+    "id": "MSG_90218"
   }'
 ```
 
@@ -1699,7 +1700,7 @@ curl -X POST "https://core.skypaybd.top/api/v2/gateway/send" \
 
 
 ```javascript
-const sendSms = async (phoneNumber, messageText, customId = '') => {
+const sendSms = async (phoneNumber, messageText) => {
   const response = await fetch('https://core.skypaybd.top/api/v2/gateway/send', {
     method: 'POST',
     headers: {
@@ -1708,7 +1709,7 @@ const sendSms = async (phoneNumber, messageText, customId = '') => {
     },
     body: JSON.stringify({
       number: phoneNumber,
-      text: messageText,
+      text: messageText
     })
   });
 
@@ -1727,7 +1728,7 @@ const sendSms = async (phoneNumber, messageText, customId = '') => {
 import os
 import requests
 
-def send_gateway_sms(phone: str, message: str, msg_id: str = ""):
+def send_gateway_sms(phone: str, message: str):
     url = "https://core.skypaybd.top/api/v2/gateway/send"
     headers = {
         "GATEWAY-KEY": os.getenv("SKYPAY_GATEWAY_KEY"),
@@ -1789,11 +1790,11 @@ import (
 	"os"
 )
 
-func SendSMS(phone, message, msgID string) ([]byte, error) {
+func SendSMS(phone, message string) ([]byte, error) {
 	url := "https://core.skypaybd.top/api/v2/gateway/send"
 	payload, _ := json.Marshal(map[string]string{
 		"number": phone,
-		"text":   message
+		"text":   message,
 	})
 
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
@@ -2287,7 +2288,7 @@ This document provides a comprehensive reference of all HTTP status codes, machi
 | **400** | `AMOUNT_MISMATCH` | `/api/v2/payment/verify` | Transferred amount does not match session invoice amount. | Prompt customer to send the exact bill amount or issue an adjustment invoice. |
 | **400** | `DEVICE_OFFLINE` | `/api/v2/gateway/send` | Android SMS relay device has no assigned IP or is disconnected. | Inspect the physical Android phone. Verify Wi-Fi/cellular connection and open `SkyPay.apk`. |
 | **400** | `MISSING_DEVICE_KEYS` | `/api/v2/device/status` | `DEVICE-KEYS` header was omitted from the request. | Provide a comma-separated list of valid device identifiers in the `DEVICE-KEYS` header. |
-| **401** | `UNAUTHORIZED` | All Endpoints | No authentication header detected. | Pass `BRAND-KEY: <key>` or `Authorization: Bearer <key>` in your HTTP request headers. |
+| **401** | `UNAUTHORIZED` | All Endpoints | No authentication header detected. | Pass `BRAND-KEY: <key>` in your HTTP request headers. |
 | **401** | `INVALID_BRAND_KEY` | Payment Endpoints | The provided Brand Key does not match any active merchant. | Verify your credentials in the Merchant Portal under **API Settings**. |
 | **401** | `INVALID_GATEWAY_KEY` | `/api/v2/gateway/send` | 18-character SMS gateway key is incorrect or deactivated. | Verify your hardware key in the **SMS Gateway > Devices** tab of the portal. |
 | **403** | `ACCOUNT_SUSPENDED` | All Endpoints | Merchant account suspended due to compliance, chargeback, or policy issues. | Contact SkyPay Merchant Support at `support@skypaybd.top` to resolve account flags. |
@@ -2327,92 +2328,6 @@ This document provides a comprehensive reference of all HTTP status codes, machi
          ▼               ▼                 ▼               ▼
     Verify .env     Check Data Types   Retry in 10s    Retry with
     & IP Rules      & Constraints      Auto-Failover   Backoff
-```
-
----
-
----
-
-# Changelog & Versioning History
-
-SkyPay follows [Semantic Versioning (SemVer 2.0.0)](https://semver.org/). API releases are numbered in the format `vMAJOR.MINOR.PATCH`.
-
----
-
-## Release History
-
-### v2.2.0 — October 2026 (Current Stable)
-**Added**:
-* **Multi-Device Telemetry Endpoint (`/api/v2/device/status`)**: Query operational states, battery percentages, and downtime formatting across multiple Android relay devices using comma-separated keys.
-* **HMAC-SHA256 Webhook Signatures**: Outgoing instant payment notifications now include the `X-SkyPay-Signature` header for cryptographic origin verification and tamper prevention.
-* **BSC Node Multi-Provider Failover**: Decentralized BEP20 USDT transaction verification now queries secondary RPC nodes (Ankr, QuickNode) if the primary public BSC node times out.
-
----
-
-### v2.1.0 — July 2026
-**Added**:
-* **Programmatic SMS Gateway API (`/api/v2/gateway/send`)**: Dispatch real outbound SMS messages via connected merchant Android relay hardware.
-* **Unicode & Bangla SMS Encoding**: Full native support for Bangla character sets and multi-part SMS messages.
-* **FCM HTTP v1 Migration**: Upgraded internal push dispatching to OAuth2 JWT Google Service Account credentials for sub-second wakeups.
-
----
-
-### v2.0.0 — March 2026 (Major Release)
-**Added**:
-* **Headless In-App API (`/api/v2/payment/create` & `/api/v2/payment/verify`)**: 100% white-label API architecture for Flutter, React Native, iOS, Android, and Telegram bots.
-* **Bangla QR Interoperability**: Automatic reconciliation of merchant QR push notifications via sender MSISDN matching.
-* **BEP20 USDT Smart Contract Engine**: Automatic on-chain reconciliation of Binance Smart Chain USDT transfers using EVM transaction hashes.
-* **Binance Pay Direct Integration**: Authenticated server-to-server Binance Open API settlement.
-
----
-
-### v1.2.0 — November 2025
-**Added**:
-* **Custom Metadata Support**: Merchants can attach arbitrary JSON objects (`meta_data`) during payment session initialization.
-* **Customer Profile Auto-Fill**: Hosted checkout supports `cus_name` and `cus_email` parameters to pre-fill invoice contact fields.
-* **Automated Webhook Callbacks**: Automatic HTTP POST delivery on hosted payment execution.
-
----
-
-### v1.0.0 — January 2025 (Initial Release)
-**Added**:
-* Launch of SkyPay Core Hosted Checkout Gateway (`/api/payment/create`, `/api/execute/{id}`, `/api/payment/verify`).
-* Direct automated verification for bKash and Nagad personal accounts via Android SMS relay bridge.
-* WooCommerce and WHMCS payment gateway plugins.
-
----
-
-## Migration Guide: Migrating from v1 Hosted to v2 Headless
-
-If your application currently uses Hosted Checkout (v1) and you want to build custom, in-app checkout screens without browser redirection, follow these migration steps:
-
-### 1. Update Session Creation Endpoint
-* **Old Endpoint**: `POST https://core.skypaybd.top/api/payment/create`
-* **New Endpoint**: `POST https://core.skypaybd.top/api/v2/payment/create`
-
-### 2. Update Request Parameters
-Remove `success_url` and `cancel_url` from your payload (these are not needed in headless mode). Supply `cus_name`, `amount`, and optional `meta_data`.
-
-### 3. Handle Method Arrays
-Instead of receiving a `payment_url`, your client application will receive an array of active `methods`:
-```json
-{
-  "id": "ids_98fbc102e4aa",
-  "methods": [
-    { "name": "bkash", "personal": "017XXXXXXXX" },
-    { "name": "binance", "amount_usdt": 19.2 }
-  ]
-}
-```
-
-### 4. Direct Client Verification
-When the customer submits their transaction proof, submit it directly to `/api/v2/payment/verify`:
-```json
-{
-  "id": "ids_98fbc102e4aa",
-  "method": "bkash",
-  "transaction_id": "CKL48A9D01"
-}
 ```
 
 ---
